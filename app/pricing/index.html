@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../">
+<head><style>#tsbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:space-between;padding:8px max(14px,env(safe-area-inset-left,0px));background:#046725;color:#fff;font:500 13px/1.3 system-ui,sans-serif}
+#tsbar a{color:#fff;font-weight:700;text-decoration:underline}
+#tsbar button{font:inherit;font-weight:700;color:#046725;background:#fff;border:0;border-radius:6px;padding:5px 10px;cursor:pointer}
+</style><script>/* PestHub demo: all data is sample data held in this browser. Nothing leaves the device. */
+(function(){
+var KEY='ph_demo_v1', PIN='1234', mem=null;
+var realFetch=window.fetch.bind(window);
+window.confirm=function(){return true;};
+function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){ return null; } }
+var HR=3600000, DAY=86400000;
+function dateIn(days){ var d=new Date(Date.now()+days*DAY); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function seed(){
+ var now=Date.now();
+ var T=['Marcus Hale','Dana Whitfield','Luis Ortega','Priya Nair','Cody Brandt','Jenna Sloan'];
+ function pr(id,name,category,qty,reorderAt,unit){ return {id:id,name:name,category:category,qty:qty,reorderAt:reorderAt,unit:unit}; }
+ function stock(m){ return [
+  pr('p1','Bifen I/T','Liquids',Math.round(9*m),4,'gal'),pr('p2','Cyzmic CS','Liquids',Math.round(3*m),3,'qt'),pr('p3','Taurus SC','Liquids',Math.round(7*m),2,'bottle'),
+  pr('p4','Delta Dust','Dusts',Math.round(11*m),5,'lb'),pr('p5','CimeXa Dust','Dusts',Math.round(2*m),3,'can'),pr('p6','Advion Ant Gel','Baits',Math.round(14*m),6,'tube'),
+  pr('p7','Bait station, tamper-resistant','Rodent',Math.round(36*m),12,'each'),pr('p8','Rodent bait blocks','Rodent',Math.round(4*m),2,'pail'),pr('p9','Snap traps','Rodent',Math.round(48*m),20,'each'),
+  pr('p10','Exclusion mesh','Wildlife',Math.round(6*m),3,'roll'),pr('p11','One-way bat valves','Wildlife',0,4,'each'),pr('p12','Trap bait, sweet','Wildlife',Math.round(5*m),2,'jar'),
+  pr('p13','Nitrile gloves','Safety',Math.round(9*m),4,'box'),pr('p14','Respirator cartridges','Safety',Math.round(6*m),4,'pair')]; }
+ var items=[
+  {id:'e1',name:'Cage trap, medium',total:14,out:[{id:'h1',tech:T[0],qty:3,since:now-2*DAY,note:'418 Sample Ln, skunk'},{id:'h2',tech:T[2],qty:2,since:now-9*DAY,note:'77 Birch Ct, raccoon'}]},
+  {id:'e2',name:'Cage trap, small',total:20,out:[{id:'h3',tech:T[1],qty:4,since:now-30*HR,note:'1203 Orchard Rd, squirrels'}]},
+  {id:'e3',name:'Cellular trail camera',total:8,out:[{id:'h4',tech:T[0],qty:1,since:now-2*DAY,note:'418 Sample Ln'}]},
+  {id:'e4',name:'Burrow gas applicator',total:2,out:[]},{id:'e5',name:'40 ft extension ladder',total:3,out:[{id:'h5',tech:T[4],qty:1,since:now-4*HR,note:'Soffit exclusion'}]},
+  {id:'e6',name:'Drill and rod termite kit',total:2,out:[]},{id:'e7',name:'Backpack mister',total:5,out:[]}];
+ var active=[
+  {id:'T1',branch:'North Branch',tech:T[0],itemId:'e1',item:'Cage trap, medium',qty:3,address:'418 Sample Ln',lat:null,lng:null,target:'Skunk',job:'20418',notes:'Under back deck, left side',setAt:now-50*HR,every:24,lastCheck:now-27*HR,nextDue:now-3*HR,status:'Active',catches:1},
+  {id:'T2',branch:'South Branch',tech:T[2],itemId:'e1',item:'Cage trap, medium',qty:2,address:'77 Birch Ct',lat:null,lng:null,target:'Raccoon',job:'20377',notes:'Attic access by garage',setAt:now-30*HR,every:24,lastCheck:now-21*HR,nextDue:now+3*HR,status:'Active',catches:0},
+  {id:'T3',branch:'North Branch',tech:T[1],itemId:'e2',item:'Cage trap, small',qty:4,address:'1203 Orchard Rd',lat:null,lng:null,target:'Squirrel',job:'20455',notes:'',setAt:now-20*HR,every:24,lastCheck:now-6*HR,nextDue:now+18*HR,status:'Active',catches:2}];
+ var log=[{when:now-6*HR,tech:T[1],action:'Caught',animal:'Squirrel',count:2,address:'1203 Orchard Rd',notes:'Relocated per state rules'},{when:now-21*HR,tech:T[2],action:'Empty',address:'77 Birch Ct',notes:''},{when:now-27*HR,tech:T[0],action:'Caught',animal:'Skunk',count:1,address:'418 Sample Ln',notes:'Trap reset'}];
+ var prices=[
+  ['General pest','General Pest Plan','Quarterly, one-story home up to 2,500 sq ft','$129 per visit\n$199 initial','$109 per visit'],
+  ['General pest','German cockroach cleanout','Initial plus 4 follow-ups. Inspect first.','$649','$549'],
+  ['General pest','Wasp nest removal','Single visit, ground access','$149','$119'],
+  ['Rodents','Mouse program','Inspection, minor exclusion, stations','$349','$299'],
+  ['Rodents','Additional bait station','','$35 each','$30 each'],
+  ['Wildlife','Live trapping','Per week, not per animal','$525 per week','$475 per week'],
+  ['Wildlife','Bat exclusion','Quote after inspection. Observe blackout dates.','From $1,200','$950'],
+  ['Wildlife','Snake removal','Can rise with drive distance','$325 one time\n$525 for 7 days','$295'],
+  ['Termites','Drill and rod treatment','3-year warranty','Quote per linear foot','$11 per ft'],
+  ['Termites','Warranty extension','Up to 5 years total','$225 per year','$225 per year'],
+  ['Lawn','Weed and feed','Six applications per season','$59 per application','$49 per application']
+ ].map(function(r){ return {section:r[0],service:r[1],note:r[2],standard:r[3],floor:r[4]}; });
+ var lic=[
+  ['L1',T[0],'North Branch','TX','TX-448201',38],['L2',T[0],'North Branch','OK','OK-90217',410],['L3',T[1],'North Branch','TX','TX-512877',12],
+  ['L4',T[2],'South Branch','TX','TX-330914',-6],['L5',T[3],'South Branch','LA','LA-77120',205],['L6',T[4],'East Branch','OK','OK-88342',96],['L7',T[5],'East Branch','OK','OK-60155',301]
+ ].map(function(r){ return {id:r[0],tech:r[1],branch:r[2],state:r[3],type:'Commercial Applicator',number:r[4],expires:dateIn(r[5]),email:'',notes:''}; });
+ var people=[
+  ['Avery Lindqvist','Owner','All branches','Leadership','(555) 555-0100','avery@samplepest.example'],['Rosa Delgado','Operations Manager','All branches','Leadership','(555) 555-0101','rosa@samplepest.example'],
+  [T[0],'Service Technician','North Branch','Service Technicians','(555) 555-0110','marcus@samplepest.example'],[T[1],'Service Technician','North Branch','Service Technicians','(555) 555-0111',''],[T[2],'Wildlife Technician','South Branch','Service Technicians','(555) 555-0112',''],
+  [T[3],'Service Technician','South Branch','Service Technicians','(555) 555-0113',''],[T[4],'Wildlife Technician','East Branch','Service Technicians','(555) 555-0114',''],[T[5],'Service Technician','East Branch','Service Technicians','(555) 555-0115',''],
+  ['Nora Beck','Customer Service','North Branch','Office','(555) 555-0120','office@samplepest.example'],['Theo Marsh','Sales Lead','All branches','Outbound Sales','(555) 555-0130','']
+ ].map(function(p){ return {name:p[0],role:p[1],branch:p[2],section:p[3],phone:p[4],email:p[5],notes:''}; });
+ return {T:T,stock:{IF:stock(1),WY:stock(.7),BZ:stock(.5)},shopLog:[{when:now-5*HR,who:T[0],action:'Checked out',product:'Bifen I/T',qty:1,unit:'gal'},{when:now-28*HR,who:T[1],action:'Checked out',product:'Snap traps',qty:12,unit:'each'},{when:now-52*HR,who:T[3],action:'Returned',product:'Delta Dust',qty:1,unit:'lb'}],
+  items:items,eqLog:[{when:now-2*DAY,who:T[0],action:'Checked out',qty:3,item:'Cage trap, medium',note:'418 Sample Ln'}],active:active,trapLog:log,prices:prices,updated:new Date().toLocaleDateString(),lic:lic,licEmail:'manager@samplepest.example',licDays:'60,30,14,7,0',people:people,email:'manager@samplepest.example'};
+}
+function db(){ if(mem) return mem; try{ var r=ls(KEY); if(r) mem=JSON.parse(r); }catch(e){} if(!mem){ mem=seed(); save(); } return mem; }
+function save(){ ls(KEY,JSON.stringify(mem)); }
+function pin(p){ if(String(p)!==PIN) throw new Error('Wrong PIN. The demo PIN is 1234.'); }
+function eq(){ var d=db(); return {items:d.items,techs:d.T}; }
+function eqA(){ var d=db(); return {items:d.items,techs:d.T,log:d.eqLog.slice(0,40)}; }
+function find(a,id){ return a.filter(function(x){return x.id===id;})[0]; }
+function trapL(){ var d=db(); return {active:d.active,items:d.items,techs:d.T,log:d.trapLog}; }
+function licD(){ var d=db(); return {rows:d.lic.map(function(r){ var x=Object.assign({},r), p=r.expires.split('-'), e=new Date(+p[0],p[1]-1,+p[2]), n=new Date(); n.setHours(0,0,0,0); x.days=Math.round((e-n)/DAY); return x; }),techs:d.T.map(function(t){ var p=d.people.filter(function(q){return q.name===t;})[0]; return {name:t,branch:p?p.branch:''}; }),email:d.licEmail,days:d.licDays,sheetUrl:''}; }
+function pric(){ var d=db(); return {rows:d.prices,updated:d.updated,footer:'Sample prices for this demo. Each company enters its own.'}; }
+function shop(br){ var d=db(); return {products:d.stock[br]||[],techs:d.T,log:d.shopLog.slice(0,60),email:d.email,sheetUrl:''}; }
+var F={
+ getDirectory:function(){ return {people:db().people,sheetUrl:''}; },
+ eqList:eq,
+ eqOut:function(tech,item,qty,note,when,key){ var d=db(), it=find(d.items,item); it.out.push({id:'h'+key,tech:tech,qty:+qty,since:when,note:note}); d.eqLog.unshift({when:when,who:tech,action:'Checked out',qty:qty,item:it.name,note:note}); save(); return true; },
+ eqIn:function(hold,qty,note,when){ var d=db(); d.items.forEach(function(it){ it.out=it.out.filter(function(o){ if(o.id!==hold) return true; o.qty-=+qty; d.eqLog.unshift({when:when,who:o.tech,action:'Returned',qty:qty,item:it.name,note:note}); return o.qty>0; }); }); save(); return true; },
+ eqAdmin:function(p,action,x){ pin(p); var d=db();
+  if(action==='add') d.items.push({id:'e'+Date.now().toString(36),name:x.name,total:Math.max(0,+x.total||0),out:[]});
+  if(action==='update'){ var it=find(d.items,x.id); if(x.name) it.name=x.name; if(x.total!==undefined) it.total=x.total; }
+  if(action==='delete') d.items=d.items.filter(function(i){return i.id!==x.id;});
+  save(); return eqA(); },
+ trapList:trapL,
+ trapSet:function(tech,branch,itemId,qty,address,lat,lng,target,job,notes,every,when,key){ var d=db(), it=find(d.items,itemId);
+  var have=it.out.filter(function(o){return o.tech===tech;}).reduce(function(a,o){return a+o.qty;},0), set=d.active.filter(function(t){return t.itemId===itemId&&t.tech===tech;}).reduce(function(a,t){return a+t.qty;},0), need=+qty-Math.max(0,have-set);
+  if(need>0) it.out.push({id:'h'+key,tech:tech,qty:need,since:when,note:address});
+  d.active.push({id:'T'+key.slice(-10),branch:branch,tech:tech,itemId:itemId,item:it.name,qty:+qty,address:address||'Address not entered',lat:lat,lng:lng,target:target,job:job,notes:notes,setAt:when,every:+every,lastCheck:null,nextDue:when+every*HR,status:'Active',catches:0});
+  d.trapLog.unshift({when:when,tech:tech,action:'Set',address:address,notes:notes}); save(); return true; },
+ trapCheck:function(id,tech,result,animal,count,keep,notes,when){ var d=db(), t=find(d.active,id); if(!t) return true;
+  if(result==='Pulled'||(result==='Caught'&&!keep)) d.active=d.active.filter(function(x){return x!==t;});
+  else { t.lastCheck=when; t.nextDue=when+t.every*HR; if(result==='Caught') t.catches+=(+count||1); }
+  d.trapLog.unshift({when:when,tech:tech,action:result,animal:animal,count:count,address:t.address,notes:notes}); save(); return true; },
+ getPricing:pric,
+ pricingUnlock:function(p){ pin(p); return {sheetUrl:''}; },
+ pricingSave:function(p,rows){ pin(p); var d=db(); d.prices=rows; d.updated=new Date().toLocaleDateString(); save(); return pric(); },
+ licUnlock:function(){ return licD(); },
+ licSave:function(p,r){ var d=db(); if(r.id){ d.lic=d.lic.map(function(x){ return x.id===r.id?Object.assign({},x,r):x; }); } else { r.id='L'+Date.now().toString(36); d.lic.push(r); } save(); return licD(); },
+ licDelete:function(p,id){ var d=db(); d.lic=d.lic.filter(function(x){return x.id!==id;}); save(); return licD(); },
+ licSettings:function(p,email,days){ var d=db(); d.licEmail=email; d.licDays=days; save(); return licD(); },
+ licTest:function(p){ return {sent:0,note:'Demo only: no email was sent. The live version emails this reminder.'}; },
+ getKiosk:function(br){ return shop(br); },
+ checkout:function(br,tech,items,when){ var d=db(); items.forEach(function(i){ var p=find(d.stock[br],i.id); if(p){ p.qty=Math.max(0,p.qty-i.qty); d.shopLog.unshift({when:when,who:tech,action:'Checked out',product:p.name,qty:i.qty,unit:p.unit}); } }); save(); return true; },
+ returnItems:function(br,tech,items,when){ var d=db(); items.forEach(function(i){ var p=find(d.stock[br],i.id); if(p){ p.qty+=i.qty; d.shopLog.unshift({when:when,who:tech,action:'Returned',product:p.name,qty:i.qty,unit:p.unit}); } }); save(); return true; },
+ adminState:function(br,p){ pin(p); return shop(br); },
+ adminSaveProduct:function(br,p,x){ pin(p); var d=db(), a=d.stock[br], o=x.id?find(a,x.id):null; if(o) Object.assign(o,x,{qty:+x.qty,reorderAt:+x.reorderAt}); else a.push(Object.assign({},x,{id:'p'+Date.now().toString(36),qty:+x.qty||0,reorderAt:+x.reorderAt||0})); save(); return shop(br); },
+ adminRestock:function(br,p,id,add){ pin(p); var d=db(), o=find(d.stock[br],id); o.qty+=(+add||0); d.shopLog.unshift({when:Date.now(),who:'Manager',action:'Restocked',product:o.name,qty:+add||0,unit:o.unit}); save(); return shop(br); },
+ adminDeleteProduct:function(br,p,id){ pin(p); var d=db(); d.stock[br]=d.stock[br].filter(function(x){return x.id!==id;}); save(); return shop(br); },
+ adminAddTech:function(br,p,n){ pin(p); var d=db(); if(d.T.indexOf(n)<0) d.T.push(n); save(); return shop(br); },
+ adminRemoveTech:function(br,p,n){ pin(p); var d=db(); d.T=d.T.filter(function(x){return x!==n;}); save(); return shop(br); },
+ adminSettings:function(br,p,em){ pin(p); var d=db(); if(em!=null) d.email=em; save(); return shop(br); }
+};
+window.fetch=function(u,o){ var url=String(u&&u.url||u);
+ if(url==='demo-api'){ var b=JSON.parse(o.body), r;
+  try{ if(!F[b.fn]) throw new Error('Not in this demo.'); r={ok:true,data:JSON.parse(JSON.stringify(F[b.fn].apply(null,b.args||[])))}; }catch(e){ r={ok:false,error:e.message}; }
+  return new Promise(function(res){ setTimeout(function(){ res(new Response(JSON.stringify(r),{status:200,headers:{'Content-Type':'application/json'}})); },90); }); }
+ if(/nominatim/.test(url)){ var S=[{lat:'39.00000',lon:'-95.00000',address:{house_number:'418',road:'Sample Ln',city:'Sampleton',postcode:'00000'},display_name:'418 Sample Ln, Sampleton'}];
+  return Promise.resolve(new Response(JSON.stringify(/reverse/.test(url)?S[0]:S),{status:200})); }
+ return realFetch(u,o); };
+ls('shopBranch')||ls('shopBranch','IF');
+document.addEventListener('DOMContentLoaded',function(){
+ var root=document.documentElement.getAttribute('data-root')||'', b=document.createElement('div'); b.id='tsbar';
+ b.innerHTML='<a href="'+root+'index.html">PestHub overview</a><span>Demo: sample data. Manager PIN 1234.</span><button type="button" id="tsreset">Reset demo</button>';
+ document.body.insertBefore(b,document.body.firstChild);
+ document.getElementById('tsreset').addEventListener('click',function(){ try{ localStorage.clear(); }catch(e){} mem=null; location.reload(); });
+});
+})();
+</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pricing">
+<meta name="theme-color" content="#1f2324">
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0yMzYgLTIzNiA0NzIgNDcyIiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlBlc3RIdWIiPjxwb2x5Z29uIHBvaW50cz0iMC4wLC0yMDAuMCAxNzMuMiwtMTAwLjAgMTczLjIsMTAwLjAgMC4wLDIwMC4wIC0xNzMuMiwxMDAuMCAtMTczLjIsLTEwMC4wIiBmaWxsPSIjMDQ2NzI1IiBzdHJva2U9IiMwNDY3MjUiIHN0cm9rZS13aWR0aD0iMTQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48Y2lyY2xlIGN4PSIwLjAiIGN5PSItMjAwLjAiIHI9IjMzIiBmaWxsPSIjZmZmZmZmIi8+PGNpcmNsZSBjeD0iMC4wIiBjeT0iLTIwMC4wIiByPSIyNSIgZmlsbD0iIzA0NjcyNSIvPjxjaXJjbGUgY3g9IjE3My4yIiBjeT0iLTEwMC4wIiByPSIzMyIgZmlsbD0iI2ZmZmZmZiIvPjxjaXJjbGUgY3g9IjE3My4yIiBjeT0iLTEwMC4wIiByPSIyNSIgZmlsbD0iIzA0NjcyNSIvPjxjaXJjbGUgY3g9IjE3My4yIiBjeT0iMTAwLjAiIHI9IjMzIiBmaWxsPSIjZmZmZmZmIi8+PGNpcmNsZSBjeD0iMTczLjIiIGN5PSIxMDAuMCIgcj0iMjUiIGZpbGw9IiMwNDY3MjUiLz48Y2lyY2xlIGN4PSIwLjAiIGN5PSIyMDAuMCIgcj0iMzMiIGZpbGw9IiNmZmZmZmYiLz48Y2lyY2xlIGN4PSIwLjAiIGN5PSIyMDAuMCIgcj0iMjUiIGZpbGw9IiMwNDY3MjUiLz48Y2lyY2xlIGN4PSItMTczLjIiIGN5PSIxMDAuMCIgcj0iMzMiIGZpbGw9IiNmZmZmZmYiLz48Y2lyY2xlIGN4PSItMTczLjIiIGN5PSIxMDAuMCIgcj0iMjUiIGZpbGw9IiMwNDY3MjUiLz48Y2lyY2xlIGN4PSItMTczLjIiIGN5PSItMTAwLjAiIHI9IjMzIiBmaWxsPSIjZmZmZmZmIi8+PGNpcmNsZSBjeD0iLTE3My4yIiBjeT0iLTEwMC4wIiByPSIyNSIgZmlsbD0iIzA0NjcyNSIvPjxnIHRyYW5zZm9ybT0ic2NhbGUoMS4yNSkiPjxwYXRoIGQ9Ik0wLTEwNCA4Ni03NFYzNEwwIDEwNi04NiAzNFYtNzRaIiBmaWxsPSIjZmZmZmZmIi8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCAwKSBzY2FsZSgxKSI+PGcgc3Ryb2tlPSIjMWYyMzI0IiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZmlsbD0ibm9uZSI+PHBhdGggZD0iTS04LTQ0LTE0LTU4LTIyLTYwTTgtNDQgMTQtNTggMjItNjBNLTI3LTYtNDYtMTYtNTAtMjhNLTMxIDE0SC01MkwtNTggNE0tMjcgMzQtNDQgNDYtNDYgNjBNMjctNiA0Ni0xNiA1MC0yOE0zMSAxNEg1Mkw1OCA0TTI3IDM0IDQ0IDQ2IDQ2IDYwIi8+PC9nPjxwYXRoIGQ9Ik0tMTUtMzBBMTUgMTUgMCAwIDEgMTUtMzBWLTI2SC0xNVoiIGZpbGw9IiMxZjIzMjQiLz48ZWxsaXBzZSBjeD0iMCIgY3k9IjE0IiByeD0iMzMiIHJ5PSI0MSIgZmlsbD0iIzFmMjMyNCIvPjxwYXRoIGQ9Ik0wLTI2VjU0IiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMyIvPjwvZz48L2c+PC9zdmc+">
+<title>Pricing Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#f3f6f4; --surface:#ffffff; --sunk:#e6ecE8; --ink:#1f2324; --muted:#55635a; --line:#d5dfd8;
+  --accent:#046725; --accent-ink:#ffffff; --accent-soft:#e4f1e8; --ok:#067a2e; --crit:#b3261e; --crit-soft:#f6d9d6;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0e100c; --surface:#181b15; --sunk:#0a0b08; --ink:#eef2ea; --muted:#9ba393; --line:#2a2f25;
+  --accent:#8cc63f; --accent-soft:#25331a; --ok:#9fd65a; --crit:#ef7d72; --crit-soft:#3d1c19; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--body)}
+[hidden]{display:none!important}
+#app{max-width:1100px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;gap:16px;
+  padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+a{color:var(--ok)}
+.back{align-self:flex-start;font-weight:600;font-size:.95rem;text-decoration:none;padding:4px 0;margin-bottom:-8px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{width:40px;height:40px;flex:none}
+.brand .txt{display:grid;line-height:1.1}
+.brand b{font-family:var(--display);font-size:1.6rem;letter-spacing:.02em;text-transform:uppercase}
+.eyebrow{font-size:.78rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:600}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:10px;font-weight:600;background:var(--sunk);border:1px solid var(--line)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.danger{background:var(--crit-soft);color:var(--crit);border-color:transparent}
+.btn.sm{min-height:36px;padding:0 12px;font-size:.9rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+input,textarea{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface)}
+input{min-height:44px}
+textarea{resize:vertical;min-height:44px;line-height:1.35}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.bar input{flex:1 1 240px;width:auto}
+.meta{color:var(--muted);font-size:.9rem}
+.sec{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--surface)}
+.sec h2{margin:0;background:var(--accent);color:var(--accent-ink);font:700 1.35rem/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase;padding:12px 16px}
+.row{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,.9fr);gap:4px 20px;padding:12px 16px;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.hd{background:var(--ink);color:var(--bg);font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+.svc b{display:block;font-weight:600}
+.svc small{display:block;color:var(--muted);font-size:.85rem;margin-top:2px}
+.val{white-space:pre-line;font-variant-numeric:tabular-nums}
+.lbl{display:none;font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600}
+.floor{color:var(--ok);font-weight:600}
+@media (max-width:640px){
+  .hd{display:none}
+  .row{grid-template-columns:1fr 1fr}
+  .svc{grid-column:1/-1}
+  .lbl{display:block}
+}
+.foot{color:var(--muted);font-size:.9rem;text-align:center;margin-top:8px}
+.empty{padding:40px 16px;text-align:center;color:var(--muted)}
+.note{padding:10px 14px;border-radius:8px;background:var(--crit-soft)}
+/* editor */
+.ed{display:grid;gap:10px;padding:14px 16px;border-top:1px solid var(--line)}
+.ed:first-of-type{border-top:0}
+.ed .g{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.ed label{display:grid;gap:3px;font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.ed .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.sech{display:flex;gap:8px;align-items:center;background:var(--accent);padding:10px 12px}
+.sech input{font:700 1.2rem var(--display);letter-spacing:.04em;text-transform:uppercase;flex:1}
+.pin{flex:1;display:grid;place-items:center}
+.pin form{display:grid;gap:14px;width:min(100%,320px);text-align:center}
+.pin input{text-align:center;font-family:var(--mono);font-size:1.8rem;letter-spacing:.4em}
+.save{position:sticky;bottom:0;z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:10px;z-index:20;font-weight:600;max-width:calc(100% - 32px)}
+mark{background:var(--accent-soft);color:inherit;border-radius:3px}
+@media print{.back,.bar,.top .btn{display:none!important} body{background:#fff}}
+</style>
+</head>
+<body>
+<div id="app"><div class="empty">Loading pricing…</div></div>
+<div id="toast" class="toast" hidden></div>
+<script>
+(function(){
+var API_URL='demo-api';
+var MARK='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0yMzYgLTIzNiA0NzIgNDcyIiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlBlc3RIdWIiPjxwb2x5Z29uIHBvaW50cz0iMC4wLC0yMDAuMCAxNzMuMiwtMTAwLjAgMTczLjIsMTAwLjAgMC4wLDIwMC4wIC0xNzMuMiwxMDAuMCAtMTczLjIsLTEwMC4wIiBmaWxsPSIjMDQ2NzI1IiBzdHJva2U9IiMwNDY3MjUiIHN0cm9rZS13aWR0aD0iMTQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48Y2lyY2xlIGN4PSIwLjAiIGN5PSItMjAwLjAiIHI9IjMzIiBmaWxsPSIjZmZmZmZmIi8+PGNpcmNsZSBjeD0iMC4wIiBjeT0iLTIwMC4wIiByPSIyNSIgZmlsbD0iIzA0NjcyNSIvPjxjaXJjbGUgY3g9IjE3My4yIiBjeT0iLTEwMC4wIiByPSIzMyIgZmlsbD0iI2ZmZmZmZiIvPjxjaXJjbGUgY3g9IjE3My4yIiBjeT0iLTEwMC4wIiByPSIyNSIgZmlsbD0iIzA0NjcyNSIvPjxjaXJjbGUgY3g9IjE3My4yIiBjeT0iMTAwLjAiIHI9IjMzIiBmaWxsPSIjZmZmZmZmIi8+PGNpcmNsZSBjeD0iMTczLjIiIGN5PSIxMDAuMCIgcj0iMjUiIGZpbGw9IiMwNDY3MjUiLz48Y2lyY2xlIGN4PSIwLjAiIGN5PSIyMDAuMCIgcj0iMzMiIGZpbGw9IiNmZmZmZmYiLz48Y2lyY2xlIGN4PSIwLjAiIGN5PSIyMDAuMCIgcj0iMjUiIGZpbGw9IiMwNDY3MjUiLz48Y2lyY2xlIGN4PSItMTczLjIiIGN5PSIxMDAuMCIgcj0iMzMiIGZpbGw9IiNmZmZmZmYiLz48Y2lyY2xlIGN4PSItMTczLjIiIGN5PSIxMDAuMCIgcj0iMjUiIGZpbGw9IiMwNDY3MjUiLz48Y2lyY2xlIGN4PSItMTczLjIiIGN5PSItMTAwLjAiIHI9IjMzIiBmaWxsPSIjZmZmZmZmIi8+PGNpcmNsZSBjeD0iLTE3My4yIiBjeT0iLTEwMC4wIiByPSIyNSIgZmlsbD0iIzA0NjcyNSIvPjxnIHRyYW5zZm9ybT0ic2NhbGUoMS4yNSkiPjxwYXRoIGQ9Ik0wLTEwNCA4Ni03NFYzNEwwIDEwNi04NiAzNFYtNzRaIiBmaWxsPSIjZmZmZmZmIi8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCAwKSBzY2FsZSgxKSI+PGcgc3Ryb2tlPSIjMWYyMzI0IiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZmlsbD0ibm9uZSI+PHBhdGggZD0iTS04LTQ0LTE0LTU4LTIyLTYwTTgtNDQgMTQtNTggMjItNjBNLTI3LTYtNDYtMTYtNTAtMjhNLTMxIDE0SC01MkwtNTggNE0tMjcgMzQtNDQgNDYtNDYgNjBNMjctNiA0Ni0xNiA1MC0yOE0zMSAxNEg1Mkw1OCA0TTI3IDM0IDQ0IDQ2IDQ2IDYwIi8+PC9nPjxwYXRoIGQ9Ik0tMTUtMzBBMTUgMTUgMCAwIDEgMTUtMzBWLTI2SC0xNVoiIGZpbGw9IiMxZjIzMjQiLz48ZWxsaXBzZSBjeD0iMCIgY3k9IjE0IiByeD0iMzMiIHJ5PSI0MSIgZmlsbD0iIzFmMjMyNCIvPjxwYXRoIGQ9Ik0wLTI2VjU0IiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMyIvPjwvZz48L2c+PC9zdmc+';
+var app=document.getElementById('app');
+var S={view:'view',data:null,err:'',q:'',pin:null,draft:null,busy:false,sheetUrl:''};
+function api(fn){ var args=[].slice.call(arguments,1);
+  return fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({fn:fn,args:args})})
+    .then(function(r){ if(!r.ok) throw new Error('Server error '+r.status); return r.json(); })
+    .then(function(j){ if(!j.ok) throw new Error(j.error||'Something went wrong.'); return j.data; })
+    .catch(function(e){ throw (e instanceof TypeError ? new Error('No connection. Check Wi-Fi or data.') : e); }); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function msg(e){ return (e&&e.message?e.message:String(e)).replace(/^Exception:\s*/,''); }
+function toast(t){ var el=document.getElementById('toast'); el.textContent=t; el.hidden=false; clearTimeout(toast.h); toast.h=setTimeout(function(){el.hidden=true;},2800); }
+function store(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){ return null; } }
+function hl(t){ t=esc(t); if(!S.q) return t; var q=esc(S.q).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); return t.replace(new RegExp('('+q+')','gi'),'<mark>$1</mark>'); }
+function header(right){ return '<a class="back" href="../index.html">← All tools</a><div class="top"><div class="brand"><img src="'+MARK+'" alt=""><div class="txt"><b>Pricing Guide</b><span class="eyebrow">Sample Pest Co.</span></div></div>'+(right||'')+'</div>'; }
+function upd(u){ u=String(u||''); if(/GMT|\d{4}-\d\d-\d\dT/.test(u)){ var d=new Date(u); if(!isNaN(d)) return (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear(); } return u; }
+function groups(rows){ var out=[],m={}; rows.forEach(function(r,i){ var k=r.section||'Other'; if(!m[k]){ m[k]={name:k,rows:[]}; out.push(m[k]); } m[k].rows.push(r); }); return out; }
+
+function vView(){
+  var d=S.data, h=header('<button class="btn ghost sm" data-a="toPin">Edit prices</button>');
+  if(S.err && !d) return h+'<div class="note">'+esc(S.err)+'</div>';
+  if(!d) return h+'<div class="empty">Loading pricing…</div>';
+  var q=S.q.toLowerCase();
+  var rows=d.rows.filter(function(r){ return !q || [r.section,r.service,r.note,r.standard,r.floor].join(' ').toLowerCase().indexOf(q)>=0; });
+  var body=groups(rows).map(function(g){
+    return '<section class="sec"><h2>'+esc(g.name)+'</h2><div class="row hd"><div>Service</div><div>Standard Price / Guidelines</div><div>Floor (Minimum)</div></div>'+
+      g.rows.map(function(r){ return '<div class="row"><div class="svc"><b>'+hl(r.service)+'</b>'+(r.note?'<small>'+hl(r.note)+'</small>':'')+'</div>'+
+        '<div><span class="lbl">Standard</span><div class="val floor">'+hl(r.standard||'-')+'</div></div>'+
+        '<div><span class="lbl">Floor</span><div class="val">'+hl(r.floor||'-')+'</div></div></div>'; }).join('')+'</section>';
+  }).join('');
+  return h+'<div class="bar"><input type="search" id="q" placeholder="Search services or prices" value="'+esc(S.q)+'" aria-label="Search">'+
+    '<span class="meta">'+(d.updated?'Updated '+esc(upd(d.updated)):'')+'</span></div>'+
+    (S.err?'<div class="note">'+esc(S.err)+'</div>':'')+
+    '<div id="list" style="display:grid;gap:16px">'+(body||'<div class="empty">No services match “'+esc(S.q)+'”.</div>')+'</div>'+
+    '<p class="foot">'+esc(d.footer)+'</p>';
+}
+function vPin(){
+  return header('<button class="btn ghost sm" data-a="cancel">Cancel</button>')+
+    '<div class="pin"><form id="pinForm"><span class="eyebrow">Manager PIN to edit prices</span><input id="pinIn" type="password" inputmode="numeric" autocomplete="off" maxlength="8" aria-label="PIN">'+
+    '<button class="btn primary" type="submit"'+(S.busy?' disabled':'')+'>'+(S.busy?'Checking…':'Unlock')+'</button></form></div>';
+}
+function vEdit(){
+  var secs=[]; S.draft.forEach(function(r,i){ var k=r.section; var g=secs.filter(function(s){return s.name===k;})[0]; if(!g){ g={name:k,idx:[]}; secs.push(g); } g.idx.push(i); });
+  var html=secs.map(function(g,gi){
+    return '<section class="sec"><div class="sech"><input data-sec="'+esc(g.name)+'" value="'+esc(g.name)+'" aria-label="Section name"></div>'+
+      g.idx.map(function(i,pos){ var r=S.draft[i];
+        return '<div class="ed"><div class="g">'+
+          '<label>Service<input data-i="'+i+'" data-f="service" value="'+esc(r.service)+'"></label>'+
+          '<label>Note (small text)<input data-i="'+i+'" data-f="note" value="'+esc(r.note)+'"></label></div><div class="g">'+
+          '<label>Standard price<textarea rows="2" data-i="'+i+'" data-f="standard">'+esc(r.standard)+'</textarea></label>'+
+          '<label>Floor (minimum)<textarea rows="2" data-i="'+i+'" data-f="floor">'+esc(r.floor)+'</textarea></label></div>'+
+          '<div class="acts"><button class="btn sm" data-a="up" data-i="'+i+'"'+(pos===0?' disabled':'')+' aria-label="Move up">↑</button>'+
+          '<button class="btn sm" data-a="down" data-i="'+i+'"'+(pos===g.idx.length-1?' disabled':'')+' aria-label="Move down">↓</button>'+
+          '<button class="btn danger sm" data-a="del" data-i="'+i+'">Delete</button></div></div>';
+      }).join('')+
+      '<div class="ed"><button class="btn sm" data-a="add" data-sec="'+esc(g.name)+'">+ Add service to this section</button></div></section>';
+  }).join('');
+  return header('<button class="btn ghost sm" data-a="cancel">Done without saving</button>')+
+    '<p class="meta">Edit any box, then tap <b>Save prices</b>. Use a new line inside a price box for a second line (e.g. Light / Heavy).'+
+    (S.sheetUrl?' You can also edit the <a href="'+esc(S.sheetUrl)+'" target="_blank" rel="noopener">Pricing tab in Google Sheets</a>.':'')+'</p>'+
+    html+'<button class="btn" data-a="addSec">+ Add section</button>'+
+    '<div class="save"><span class="meta">Saving sets “Updated” to today.</span><div class="bar"><button class="btn sm" data-a="newPin">Change PIN</button><button class="btn primary" data-a="save"'+(S.busy?' disabled':'')+'>'+(S.busy?'Saving…':'Save prices')+'</button></div></div>';
+}
+function render(){ app.innerHTML=({view:vView,pin:vPin,edit:vEdit})[S.view](); if(S.view==='pin') document.getElementById('pinIn').focus(); }
+function load(){ return api('getPricing').then(function(d){ S.data=d; S.err=''; store('pricingCache',JSON.stringify(d)); if(S.view==='view') render(); })
+  .catch(function(e){ S.err=(S.data?'Showing saved copy — ':'Can\'t load pricing: ')+msg(e); if(S.view==='view') render(); }); }
+
+app.addEventListener('input',function(e){
+  var t=e.target;
+  if(t.id==='q'){ S.q=t.value; var pos=t.selectionStart; render(); var n=document.getElementById('q'); n.focus(); try{n.setSelectionRange(pos,pos);}catch(_){} return; }
+  if(t.hasAttribute('data-i')){ S.draft[+t.getAttribute('data-i')][t.getAttribute('data-f')]=t.value; }
+});
+app.addEventListener('change',function(e){
+  var t=e.target; if(t.hasAttribute('data-sec') && t.tagName==='INPUT'){ var old=t.getAttribute('data-sec'), nv=t.value.trim()||old;
+    S.draft.forEach(function(r){ if(r.section===old) r.section=nv; }); render(); }
+});
+app.addEventListener('submit',function(e){
+  e.preventDefault(); var pin=document.getElementById('pinIn').value; if(!pin) return;
+  S.busy=true; render();
+  api('pricingUnlock',pin).then(function(d){ S.busy=false; S.pin=pin; S.sheetUrl=d.sheetUrl; S.draft=(S.data?S.data.rows:[]).map(function(r){ return Object.assign({},r); }); S.view='edit'; render(); window.scrollTo(0,0); })
+    .catch(function(err){ S.busy=false; render(); toast(msg(err)); });
+});
+app.addEventListener('click',function(e){
+  var b=e.target.closest('[data-a]'); if(!b) return; var a=b.getAttribute('data-a'), i=+b.getAttribute('data-i');
+  function swap(j,k){ var t=S.draft[j]; S.draft[j]=S.draft[k]; S.draft[k]=t; }
+  function sib(dir){ var sec=S.draft[i].section; for(var k=i+dir;k>=0&&k<S.draft.length;k+=dir){ if(S.draft[k].section===sec) return k; } return -1; }
+  if(a==='toPin'){ S.view='pin'; render(); }
+  else if(a==='cancel'){ if(S.view==='edit' && !confirmLeave()) return; S.view='view'; S.draft=null; render(); }
+  else if(a==='up'||a==='down'){ var k=sib(a==='up'?-1:1); if(k>=0){ swap(i,k); render(); } }
+  else if(a==='del'){ S.draft.splice(i,1); render(); }
+  else if(a==='add'){ var sec=b.getAttribute('data-sec'), last=-1; S.draft.forEach(function(r,j){ if(r.section===sec) last=j; });
+    S.draft.splice(last+1,0,{section:sec,service:'New service',note:'',standard:'',floor:''}); render(); }
+  else if(a==='addSec'){ S.draft.push({section:'NEW SECTION',service:'New service',note:'',standard:'',floor:''}); render(); }
+  else if(a==='newPin'){ var p=prompt('New 4–8 digit PIN for editing prices:'); if(p){ S.newPin=p.trim(); toast('New PIN will apply when you save.'); } }
+  else if(a==='save'){ S.busy=true; render();
+    api('pricingSave',S.pin,S.draft,'',S.newPin||'').then(function(d){ if(S.newPin){ S.pin=S.newPin; S.newPin=''; } S.busy=false; S.data=d; store('pricingCache',JSON.stringify(d)); S.view='view'; S.draft=null; render(); window.scrollTo(0,0); toast('Prices saved.'); })
+      .catch(function(err){ S.busy=false; render(); toast(msg(err)); }); }
+});
+function confirmLeave(){ return confirm('Leave without saving your changes?'); }
+try{ var c=store('pricingCache'); if(c) S.data=JSON.parse(c); }catch(_){}
+render(); load();
+})();
+</script>
+</body>
+</html>
