@@ -69,6 +69,37 @@ function trapL(){ var d=db(); return {active:d.active,items:d.items,techs:d.T,lo
 function licD(){ var d=db(); return {rows:d.lic.map(function(r){ var x=Object.assign({},r), p=r.expires.split('-'), e=new Date(+p[0],p[1]-1,+p[2]), n=new Date(); n.setHours(0,0,0,0); x.days=Math.round((e-n)/DAY); return x; }),techs:d.T.map(function(t){ var p=d.people.filter(function(q){return q.name===t;})[0]; return {name:t,branch:p?p.branch:''}; }),email:d.licEmail,days:d.licDays,sheetUrl:''}; }
 function pric(){ var d=db(); return {rows:d.prices,updated:d.updated,footer:'Sample prices for this demo. Each company enters its own.'}; }
 function shop(br){ var d=db(); return {products:d.stock[br]||[],techs:d.T,log:d.shopLog.slice(0,60),email:d.email,sheetUrl:''}; }
+function cpw(p){ if(String(p)!==PIN) throw new Error('Wrong password. The demo password is 1234.'); }
+function comm(){ var d=db(); if(!d.comm){ var ago=function(n){ return dateIn(-n); };
+ d.comm={theo:{name:'Theo Marsh',current:[{date:ago(2),svc:'Exclusion',cust:'Sample customer A',amt:1850,cur:185},{date:ago(5),svc:'General Pest Plan',cust:'Sample customer B',amt:596,cur:59.6},{date:ago(8),svc:'Live trapping',cust:'Sample customer C',amt:1050,cur:105}],past:[{date:ago(21),svc:'Termite treatment',cust:'Sample customer D',amt:2400,paid:240},{date:ago(30),svc:'Bat exclusion',cust:'Sample customer E',amt:3200,paid:320}]},
+ dana:{name:'Dana Whitfield',current:[{date:ago(3),svc:'Mouse program',cust:'Sample customer F',amt:349,cur:34.9}],past:[{date:ago(25),svc:'General Pest Plan',cust:'Sample customer G',amt:596,paid:59.6}]}}; save(); } return d.comm; }
+function commView(w){ var c=comm()[w], ps=0, pc=0, ys=0, yc=0; c.current.forEach(function(r){ ps+=r.amt; pc+=r.cur; }); ys=ps; yc=pc; c.past.forEach(function(r){ ys+=r.amt; yc+=r.paid; }); ys+=18400; yc+=1840;
+ return {name:c.name,totals:{periodSales:ps,periodComm:pc,ytdSales:ys,ytdComm:yc},current:c.current,past:c.past}; }
+function kpiSeed(){ var ws=[], t=new Date(); t.setHours(12,0,0,0); t.setDate(t.getDate()-((t.getDay()+1)%7)); for(var i=5;i>=0;i--){ var e=new Date(t.getTime()-i*7*DAY); ws.push(e.getFullYear()+'-'+String(e.getMonth()+1).padStart(2,'0')+'-'+String(e.getDate()).padStart(2,'0')); }
+ function ser(l,v,u){ var p={}; ws.forEach(function(w,i){ p[w]=v[i]; }); var s={label:l,pts:p}; if(u) s.unit=u; return s; }
+ var y=new Date().getFullYear(), mo=new Date().getMonth(), M=['January','February','March','April','May','June','July','August','September','October','November','December'], A=[21,19,26,38,52,61,66,63,49,41,28,22], B=[23,22,29,42,57,66,71,69,55,46,31,25];
+ return {weeks:ws,updated:new Date().toISOString(),groups:[
+  {name:'Vehicle Revenue',series:[ser('Truck 1',[4820,5110,4690,5340,5025,5480]),ser('Truck 2',[3960,4210,4375,4120,4480,4655]),ser('Truck 3',[3120,2980,3345,3510,3290,3625]),ser('Wildlife truck',[2640,3180,2875,3420,3760,3390])]},
+  {name:'Office',series:[ser('New sales revenue',[6200,7450,5980,8120,7640,8930]),ser('New customers',[14,17,13,19,18,21]),ser('Cancellations',[3,2,4,2,3,1]),ser('Reschedules',[9,7,11,6,8,5])]},
+  {name:'Tech Time on Job',series:[ser('Marcus Hale',[22.5,23.1,21.8,24,22.9,23.4],'time'),ser('Dana Whitfield',[19.4,18.8,20.1,19.7,18.9,19.6],'time'),ser('Luis Ortega',[15.8,14.9,15.2,14.6,14.2,13.8],'time'),ser('Priya Nair',[20.6,21.2,20.4,21.9,22.1,21.5],'time')]},
+  {name:'Tech Reservices',series:[ser('Marcus Hale',[2.8,2.4,3.1,2.2,2.6,2.1],'%'),ser('Dana Whitfield',[3.6,3.2,2.9,3.4,3.1,2.8],'%'),ser('Luis Ortega',[6.4,5.9,6.8,6.1,5.7,6.3],'%'),ser('Priya Nair',[2.9,3.3,2.7,2.5,2.8,2.4],'%')]}],
+  years:{a:String(y-1),b:String(y),rows:M.map(function(m,i){ return {month:m,a:A[i]*1000,b:i<=mo?B[i]*1000:null}; })}}; }
+var MANUAL={docs:[
+ {title:'CSR Quick-Start Guide',part:'part1',blocks:[{t:'title',x:'CSR Quick-Start Guide'},{t:'muted',x:'Sample document. Each company loads its own manual here.'},
+  {t:'h2',x:'Chapter 1: Answering the phone'},{t:'p',x:'Answer within three rings. Give the company name and your name, then ask how you can help.'},{t:'quote',x:'Thanks for calling Sample Pest Co., this is Nora. How can I help you today?'},
+  {t:'h2',x:'Chapter 2: Booking the job'},{t:'ol',items:['Identify the problem — Ask what they are seeing and where.','Confirm the address — Check that it is in the service area.','Offer a time — Give two options, not an open question.','Set expectations — Explain what the tech will do and how to prepare.']},
+  {t:'h2',x:'Chapter 3: End of day'},{t:'check',items:['All voicemails returned','Tomorrow’s route confirmed','Open quotes followed up']}]},
+ {title:'Customer Service SOP',sub:'Pricing and common questions',blocks:[{t:'title',x:'Customer Service SOP'},{t:'h2',x:'Pricing questions'},{t:'table',head:['Service','Starting price'],rows:[['General Pest Plan','$129 per visit'],['Wasp nest removal','$149'],['Live trapping','$525 per week']]},
+  {t:'h2',x:'Common questions'},{t:'qa',q:'Is it safe for my pets?',a:'Follow what the product label says. The tech will explain any re-entry time before leaving. Never say a product is non-toxic.'},{t:'qa',q:'Why is it so expensive?',a:'Explain what the service includes, then offer the plan that fits their budget. Do not go below the floor price.'}]},
+ {title:'Retention Quick Reference Card',sub:'When a customer wants to cancel',blocks:[{t:'title',x:'Retention Quick Reference Card'},{t:'h2',x:'Save the customer'},{t:'ol',items:['Listen first — Let them finish before you respond.','Ask why — Price, results or no longer needed.','Offer a fix — A free re-service or a schedule change.','Respect the answer — If they still want to cancel, process it politely.']},{t:'warn',label:'Never',x:'Argue with a customer or make them ask twice.'}]},
+ {title:'Escalation Guide',sub:'Who to call and when',blocks:[{t:'title',x:'Escalation Guide'},{t:'h2',x:'Send it to a manager when'},{t:'ul',items:['A customer mentions a bite, exposure or injury','A customer mentions a lawyer or a review threat','A refund is requested']},{t:'note',label:'Bat exposure',x:'If someone may have touched a bat, or a bat was found in a room with a sleeping person, tell them to contact their doctor or local health department right away.'}]},
+ {title:'Welcome Call Script',sub:'New customer first call',blocks:[{t:'title',x:'Welcome Call Script'},{t:'h2',x:'The call'},{t:'quote',x:'Hi, this is Nora with Sample Pest Co. I’m calling to welcome you and make sure you have what you need before your first visit.'},{t:'check',items:['Confirm the date and time','Confirm gate codes and pets','Explain how to reach the office']}]},
+ {title:'Inside Sales Guide',sub:'Calling past customers',blocks:[{t:'title',x:'Inside Sales Guide'},{t:'h2',x:'Past customer calls'},{t:'quote',x:'Hi, it’s Theo with Sample Pest Co. We helped you last year and I wanted to see how things are holding up.'},{t:'p',x:'Ask about the original problem, then offer the seasonal plan.'}]}]};
+var SOPS={sops:[
+ {id:'skunk',cat:'Wildlife',title:'Live trapping: skunk',sub:'Sample SOP',blocks:[{t:'p',lead:'Sample only.',x:'Each company loads its own procedures. Follow state and local wildlife rules.'},{t:'h2',x:'Before you set'},{t:'check',items:['Confirm the animal with sign or a trail camera','Check local trapping and release rules','Explain the check schedule to the customer']},{t:'h2',x:'Setting the trap'},{t:'ol',items:['Place the trap on level ground along the travel path.','Stabilize it so it cannot tip.','Log the set in Trap Checks with the check interval.']},{t:'note',label:'Non-target animals',x:'Release non-target animals right away and log it.'}]},
+ {id:'rodent',cat:'Rodents',title:'Rodent inspection',sub:'Sample SOP',blocks:[{t:'h2',x:'Three questions to answer'},{t:'ul',items:['How many?','Where are they traveling?','How are they getting in?']},{t:'h2',x:'Walk the property'},{t:'check',items:['Foundation and utility penetrations','Garage door seals','Attic and crawl space access','Food and water sources']}]},
+ {id:'gpc',cat:'General pest',title:'Quarterly service visit',sub:'Sample SOP',blocks:[{t:'h2',x:'At the home'},{t:'ol',items:['Talk to the customer about what they have seen.','Inspect the exterior and knock down webs.','Treat according to the product label.','Leave a service note.']},{t:'note',label:'Always',x:'The product label is the law. Check the rate before you mix.'}]},
+ {id:'cancel',cat:'Office',title:'Handling a cancellation',sub:'Sample SOP',blocks:[{t:'h2',x:'Steps'},{t:'ol',items:['Ask why they want to cancel.','Offer a re-service if the problem is results.','Record the reason and process the request.']}]}]};
 var F={
  getDirectory:function(){ return {people:db().people,sheetUrl:''}; },
  eqList:eq,
@@ -106,7 +137,15 @@ var F={
  adminDeleteProduct:function(br,p,id){ pin(p); var d=db(); d.stock[br]=d.stock[br].filter(function(x){return x.id!==id;}); save(); return shop(br); },
  adminAddTech:function(br,p,n){ pin(p); var d=db(); if(d.T.indexOf(n)<0) d.T.push(n); save(); return shop(br); },
  adminRemoveTech:function(br,p,n){ pin(p); var d=db(); d.T=d.T.filter(function(x){return x!==n;}); save(); return shop(br); },
- adminSettings:function(br,p,em){ pin(p); var d=db(); if(em!=null) d.email=em; save(); return shop(br); }
+ adminSettings:function(br,p,em){ pin(p); var d=db(); if(em!=null) d.email=em; save(); return shop(br); },
+ kpiData:function(p){ pin(p); return kpiSeed(); },
+ commList:function(){ var c=comm(); return Object.keys(c).map(function(k){ return {key:k,name:c[k].name,hasPw:true}; }); },
+ commData:function(who,pw){ cpw(pw); return commView(who); },
+ commSetPw:function(){ return true; },
+ commAddSale:function(who,pw,s){ cpw(pw); var d=db(), c=comm(), a=Number(String(s.amount).replace(/[$,\s]/g,''))||0; c[who].current.unshift({date:s.date,svc:s.svc,cust:s.cust,amt:a,cur:Math.round(a*10)/100}); d.comm=c; save(); return commView(who); },
+ manualData:function(p){ cpw(p); return {updated:new Date().toISOString(),canEdit:false,json:JSON.stringify(MANUAL)}; },
+ manualSave:function(){ throw new Error('The sample manual can’t be changed in this demo.'); },
+ sopData:function(){ return {updated:new Date().toISOString(),json:JSON.stringify(SOPS)}; }
 };
 window.fetch=function(u,o){ var url=String(u&&u.url||u);
  if(url==='demo-api'){ var b=JSON.parse(o.body), r;
