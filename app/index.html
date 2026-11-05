@@ -100,6 +100,13 @@ var SOPS={sops:[
  {id:'rodent',cat:'Rodents',title:'Rodent inspection',sub:'Sample SOP',blocks:[{t:'h2',x:'Three questions to answer'},{t:'ul',items:['How many?','Where are they traveling?','How are they getting in?']},{t:'h2',x:'Walk the property'},{t:'check',items:['Foundation and utility penetrations','Garage door seals','Attic and crawl space access','Food and water sources']}]},
  {id:'gpc',cat:'General pest',title:'Quarterly service visit',sub:'Sample SOP',blocks:[{t:'h2',x:'At the home'},{t:'ol',items:['Talk to the customer about what they have seen.','Inspect the exterior and knock down webs.','Treat according to the product label.','Leave a service note.']},{t:'note',label:'Always',x:'The product label is the law. Check the rate before you mix.'}]},
  {id:'cancel',cat:'Office',title:'Handling a cancellation',sub:'Sample SOP',blocks:[{t:'h2',x:'Steps'},{t:'ol',items:['Ask why they want to cancel.','Offer a re-service if the problem is results.','Record the reason and process the request.']}]}]};
+function hr(){ var d=db(); if(!d.ob){ var t0=Date.now();
+ d.ob=[{id:'H1',tech:'Sam Rivera',branch:'IF',start:dateIn(1),supervisor:'Marcus Hale',status:'In progress',signed:'',file:'',checks:{a1:{by:'Rosa Delgado',at:dateIn(-3)},a2:{by:'Rosa Delgado',at:dateIn(-3)},t_hb:{by:'Sam Rivera',at:dateIn(-2)}}},{id:'H2',tech:'Jenna Sloan',branch:'BZ',start:dateIn(-40),supervisor:'Cody Brandt',status:'Signed off',signed:'Sep 26, 2026 at 3:12 PM',file:'',checks:{}}];
+ d.sigs=[{name:'Marcus Hale',policy:'Driving Policy',version:'Jan 1, 2026',when:t0-9*DAY,url:''},{name:'Marcus Hale',policy:'Company Credit Card Policy',version:'Jan 1, 2026',when:t0-9*DAY,url:''},{name:'Marcus Hale',policy:'Employee Handbook',version:'Sample Edition',when:t0-9*DAY,url:''},{name:'Marcus Hale',policy:'Time Off Policy',version:'Jan 1, 2026',when:t0-9*DAY,url:''},{name:'Dana Whitfield',policy:'Employee Handbook',version:'Sample Edition',when:t0-6*DAY,url:''},{name:'Dana Whitfield',policy:'Driving Policy',version:'Jan 1, 2026',when:t0-6*DAY,url:''},{name:'Luis Ortega',policy:'Driving Policy',version:'Dec 1, 2025',when:t0-120*DAY,url:''}];
+ d.to=[{id:'R1',name:'Luis Ortega',branch:'South Branch',start:dateIn(9),end:dateIn(10),hours:16,pay:'Paid',status:'Pending',by:'',reason:'',notice:9,blocked:false},{id:'R2',name:'Priya Nair',branch:'South Branch',start:dateIn(2),end:dateIn(2),hours:8,pay:'Unpaid',status:'Pending',by:'',reason:'',notice:2,blocked:false},{id:'R3',name:'Cody Brandt',branch:'East Branch',start:dateIn(14),end:dateIn(18),hours:40,pay:'Paid',status:'Approved',by:'Rosa Delgado',reason:'',notice:21,blocked:false}];
+ save(); } return d; }
+var OB_PLAN=[{phase:'Before Day 1',group:'Paperwork',items:[['a1','Offer letter signed'],['a2','Tax and payroll forms complete'],['a3','Applicator license study guide sent']]},{phase:'Before Day 1',group:'Required documents',items:[['t_hb','Employee Handbook signed'],['t_drive','Driving Policy signed'],['t_card','Company Credit Card Policy signed']]},{phase:'Day 1',group:'Morning review',items:[['b1','Tour the shop and product storage'],['b2','Review label and PPE basics'],['b3','Install the app and find the SOPs']]},{phase:'Day 1',group:'Afternoon ride-along',items:[['b4','Shadow service visits with the supervisor']]},{phase:'Day 2',group:'Half day ride-along',items:[['c1','Tech completes visits with the supervisor watching'],['c2','Supervisor reviews notes and customer conversations']]}];
+var OB_SIGN=[['d1','Can mix and apply products according to the label'],['d2','Can complete a service note correctly'],['d3','Knows who to call for spills, injuries or exposures']];
 var F={
  getDirectory:function(){ return {people:db().people,sheetUrl:''}; },
  eqList:eq,
@@ -138,6 +145,20 @@ var F={
  adminAddTech:function(br,p,n){ pin(p); var d=db(); if(d.T.indexOf(n)<0) d.T.push(n); save(); return shop(br); },
  adminRemoveTech:function(br,p,n){ pin(p); var d=db(); d.T=d.T.filter(function(x){return x!==n;}); save(); return shop(br); },
  adminSettings:function(br,p,em){ pin(p); var d=db(); if(em!=null) d.email=em; save(); return shop(br); },
+ mgmtUnlock:function(p){ pin(p); return true; },
+ obList:function(){ var d=hr(); return {plan:OB_PLAN,signoff:OB_SIGN,hires:d.ob}; },
+ obStart:function(x){ var d=hr(), id='H'+Date.now().toString(36); d.ob.push({id:id,tech:x.tech,branch:x.branch,start:x.start,supervisor:x.supervisor,status:'In progress',signed:'',file:'',checks:{}}); save(); return id; },
+ obCheck:function(id,k,on,by){ var d=hr(), h=find(d.ob,id); if(on) h.checks[k]={by:by,at:dateIn(0)}; else delete h.checks[k]; save(); return h.checks; },
+ obSign:function(x){ pin(x.pin); var d=hr(), h=find(d.ob,x.id); h.status='Signed off'; h.supervisor=x.supervisor; h.signed=new Date().toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'})+' at '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); save(); return true; },
+ obRemove:function(id,p){ pin(p); var d=hr(); d.ob=d.ob.filter(function(h){return h.id!==id;}); save(); return true; },
+ policySigned:function(n){ return hr().sigs.filter(function(s){return s.name===n;}); },
+ policySign:function(x){ var d=hr(), w=Date.now(); d.sigs.push({name:x.name,policy:x.title,version:x.version,when:w,url:''}); save(); return {when:new Date(w).toLocaleDateString(),emailed:false}; },
+ polStatus:function(){ var d=hr(); return {people:d.people,sigs:d.sigs}; },
+ toMine:function(n){ return hr().to.filter(function(r){return r.name===n;}); },
+ toSubmit:function(x){ var d=hr(), s=new Date(x.start+'T12:00:00'), n=Math.round((s-new Date())/DAY), p=d.people.filter(function(q){return q.name===x.name;})[0]; d.to.unshift({id:'R'+Date.now().toString(36),name:x.name,branch:p?p.branch:'',start:x.start,end:x.end,hours:x.hours,pay:x.pay,status:'Pending',by:'',reason:'',notice:n,blocked:false}); save(); return {late:n<3}; },
+ toAdmin:function(){ return hr().to; },
+ toDecide:function(p,id,st,by,why){ var d=hr(), r=find(d.to,id); r.status=st; r.by=by; r.reason=why||''; save(); return d.to; },
+ toBlocked:function(p,id,v){ var d=hr(), r=find(d.to,id); r.blocked=v; save(); return d.to; },
  kpiData:function(p){ pin(p); return kpiSeed(); },
  commList:function(){ var c=comm(); return Object.keys(c).map(function(k){ return {key:k,name:c[k].name,hasPw:true}; }); },
  commData:function(who,pw){ cpw(pw); return commView(who); },
@@ -208,6 +229,12 @@ h1{font:700 2.2rem/1 var(--display);letter-spacing:.02em;text-transform:uppercas
 .ico svg{width:42px;height:42px}
 .tile b{display:block;font:700 clamp(1.1rem,5vw,1.45rem)/1.05 var(--display);letter-spacing:.02em;text-transform:uppercase}
 .tile span{display:block;color:var(--muted);font-size:.92rem;margin-top:4px;line-height:1.3}
+.gate{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 16px;display:grid;gap:12px;max-width:420px;width:100%;margin:0 auto}
+.gate[hidden]{display:none}
+.gate h3{margin:0;font:700 1.3rem/1.1 var(--display);letter-spacing:.03em;text-transform:uppercase}
+.gate input{width:100%;min-height:52px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:600 1.2rem var(--body)}
+.gate button{min-height:50px;border-radius:12px;border:0;background:var(--accent);color:var(--accent-ink);font:600 1rem var(--body);cursor:pointer}
+.gate .gerr{margin:0;color:#b3261e;font-weight:600}
 .none{grid-column:1/-1;text-align:center;color:var(--muted);padding:24px 0}
 .tile{position:relative}
 .tile.off{display:none}
@@ -223,6 +250,19 @@ h1{font:700 2.2rem/1 var(--display);letter-spacing:.02em;text-transform:uppercas
 .choose button{min-height:44px;padding:0 18px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 .95rem var(--body);cursor:pointer}
 .choose button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .hint{text-align:center;color:var(--muted);font-size:.9rem;margin:-8px 0 0}
+[hidden]{display:none!important}
+.sect{display:grid;gap:12px}
+.sect a{display:flex;align-items:center;gap:16px;padding:20px 18px;border-radius:20px;background:var(--surface);border:1px solid var(--line);color:inherit;text-decoration:none;min-height:120px}
+.sect a:active{transform:translateY(2px)}
+.sect a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.sect .ico{width:68px;height:68px;border-radius:18px}
+.sect .ico svg{width:46px;height:46px}
+.sect b{display:block;font:700 clamp(1.5rem,7vw,2rem)/1 var(--display);letter-spacing:.02em;text-transform:uppercase}
+.sect span{display:block;color:var(--muted);font-size:.95rem;margin-top:6px;line-height:1.3}
+.sect .go{margin-left:auto;font-size:1.6rem;color:var(--muted);flex:none}
+.crumb{display:flex;flex-direction:column;gap:2px}
+.crumb a{align-self:flex-start;font-weight:600;font-size:.95rem;text-decoration:none;color:var(--muted);padding:4px 0}
+.crumb h2{font:700 1.9rem/1 var(--display);letter-spacing:.02em;text-transform:uppercase;margin:0}
 footer{margin-top:auto;font-size:.8rem;color:var(--muted);text-align:center}
 </style>
 </head>
@@ -233,108 +273,141 @@ footer{margin-top:auto;font-size:.8rem;color:var(--muted);text-align:center}
     <div><h1>Sample Pest Co.</h1><div class="sub">Powered by PestHub</div></div>
   </header>
   <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Search anything in PestHub…" autocomplete="off" aria-label="Search tools"></label>
+  <nav class="sect" id="sect" aria-label="Sections">
+    <a href="#ops"><div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M4 14h24v18H4z" fill="currentColor"/><path d="M28 20h8l6 7v5H28z" fill="currentColor"/><path d="M31 22h4l4 5h-8z" fill="var(--accent)"/><circle cx="12" cy="34" r="5" fill="var(--accent)" stroke="currentColor" stroke-width="3"/><circle cx="35" cy="34" r="5" fill="var(--accent)" stroke="currentColor" stroke-width="3"/></svg></div><div><b>Operations</b><span>Techs in the field: guides, SOPs, mixing, traps, gear</span></div><i class="go" aria-hidden="true">›</i></a>
+    <a href="#office"><div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M10 26v-4a14 14 0 0 1 28 0v4" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><rect x="6" y="24" width="9" height="13" rx="3" fill="currentColor"/><rect x="33" y="24" width="9" height="13" rx="3" fill="currentColor"/><path d="M37 37c0 4-5 6-11 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><rect x="22" y="40" width="7" height="5" rx="2" fill="var(--accent)" stroke="currentColor" stroke-width="2"/></svg></div><div><b>Office Staff</b><span>CSRs: calls, pricing, manual, commissions</span></div><i class="go" aria-hidden="true">›</i></a>
+    <a href="#mgmt"><div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="6" y="26" width="8" height="16" rx="2" fill="currentColor"/><rect x="20" y="18" width="8" height="24" rx="2" fill="currentColor"/><rect x="34" y="10" width="8" height="32" rx="2" fill="currentColor"/><path d="M6 20l14-10 8 6 14-10" fill="none" stroke="var(--accent)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><b>Management</b><span>KPIs, licenses, inventory, admin</span></div><i class="go" aria-hidden="true">›</i></a>
+  </nav>
+  <div class="crumb" id="crumb" hidden><a href="#">← All sections</a><h2 id="gname"></h2></div>
+  <form class="gate" id="gate" hidden><h3>Managers only</h3><input id="gpin" type="password" inputmode="numeric" autocomplete="off" placeholder="Demo PIN: 1234" aria-label="Management PIN"><p class="gerr" id="gerr" hidden></p><button id="gbtn">Open Management</button></form>
   <p class="hint" id="hint" hidden>Tap a tool to show or hide it on this phone, then tap Done.</p>
   <nav class="tiles" aria-label="Tools">
-    <a class="tile" href="field-guide/index.html" data-k="raccoon skunk squirrel bat mouse mice rat vole mole gopher bird pigeon snake marmot rabbit deer wasp hornet ant spider bed bug cockroach termite attic crawlspace treatment sop guide policy problem">
+    <a class="tile" href="field-guide/index.html" data-g="ops office" data-k="raccoon skunk squirrel bat mouse mice rat vole mole gopher bird pigeon snake marmot rabbit deer wasp hornet ant spider bed bug cockroach termite attic crawlspace treatment sop guide policy problem">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12c-2-3-4-5-7-6M27 12c2-3 4-5 7-6"/><path d="M21 22l-7-3-4 2M27 22l7-3 4 2"/><path d="M21 24l-8 2-3 5M27 24l8 2 3 5"/><path d="M21 26l-6 6-1 6M27 26l6 6 1 6"/></g><g fill="currentColor"><ellipse cx="24" cy="14" rx="4.6" ry="4.2"/><ellipse cx="24" cy="23.5" rx="3.4" ry="4.6"/><ellipse cx="24" cy="35" rx="6.4" ry="8"/></g><g fill="var(--accent)"><circle cx="22.2" cy="13" r="1.1"/><circle cx="25.8" cy="13" r="1.1"/></g><path d="M20 33c2.5 1.2 5.5 1.2 8 0M19.5 37c2.8 1.3 6.2 1.3 9 0" stroke="var(--accent)" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/></svg></div>
       <div><b>Field Guide</b><span>Problems, products and policy</span></div>
     </a>
-    <a class="tile" href="shop/index.html" data-k="inventory supplies stock bait product check out return restock">
+    <a class="tile" href="shop/index.html" data-g="ops" data-k="inventory supplies stock bait product check out return restock">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="9" y="7" width="30" height="38" rx="3.5" fill="currentColor"/><rect x="12.5" y="11.5" width="23" height="30" rx="1.5" fill="#fff"/><path d="M18 5.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2V7h1.5A1.5 1.5 0 0 1 33 8.5v3a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 15 11.5v-3A1.5 1.5 0 0 1 16.5 7H18z" fill="currentColor"/><circle cx="24" cy="5.6" r="1.3" fill="var(--accent)"/><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 19.5l1.6 1.6 3-3.2M15.5 26.5l1.6 1.6 3-3.2M15.5 33.5l1.6 1.6 3-3.2" stroke="#067a2e" stroke-width="1.9"/><path d="M23 20h9.5M23 27h9.5M23 34h6.5" stroke="currentColor" stroke-width="2"/></g></svg></div>
       <div><b>Inventory</b><span>Shop supplies in and out</span></div>
     </a>
-    <a class="tile" href="pricing/index.html" data-k="price prices pricing cost quote estimate floor rate">
+    <a class="tile" href="pricing/index.html" data-g="office" data-k="price prices pricing cost quote estimate floor rate">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M25.5 5H40a3 3 0 0 1 3 3v14.5a3 3 0 0 1-.9 2.1L24.6 42.1a3 3 0 0 1-4.2 0L5.9 27.6a3 3 0 0 1 0-4.2L23.4 5.9A3 3 0 0 1 25.5 5z" fill="currentColor"/><circle cx="35" cy="13" r="3.2" fill="var(--accent)"/><text x="22.5" y="31.5" text-anchor="middle" transform="rotate(-45 22.5 26)" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="17" fill="var(--accent)">$</text></svg></div>
       <div><b>Pricing</b><span>Standard prices and floors</span></div>
     </a>
-    <a class="tile" href="sds/index.html" data-k="sds safety data sheet label mixing mix chemical product epa">
+    <a class="tile" href="sds/index.html" data-g="ops" data-k="sds safety data sheet label mixing mix chemical product epa">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M11 5h18l9 9v27a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" fill="currentColor"/><path d="M29 5v9h9" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/><path d="M24 17l9 9-9 9-9-9z" fill="#fff"/><path d="M24 21.5v5.5" stroke="#b3261e" stroke-width="2.6" stroke-linecap="round"/><circle cx="24" cy="30.6" r="1.5" fill="#b3261e"/></svg></div>
       <div><b>SDS &amp; Labels</b><span>Safety data and product labels</span></div>
     </a>
-    <a class="tile" href="equipment/index.html" data-k="equipment trap traps camera cameras burrow rx gas chamber gear tools">
+    <a class="tile" href="equipment/index.html" data-g="ops" data-k="equipment trap traps camera cameras burrow rx gas chamber gear tools">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="4" y="13" width="40" height="24" rx="2.5" fill="currentColor"/><g stroke="#fff" stroke-width="1.6" stroke-linecap="round"><path d="M12 17v16M18 17v16M24 17v16M30 17v16M36 17v16"/><path d="M8 25h32"/></g><path d="M24 13V8M18 8h12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><rect x="38" y="15" width="3.5" height="20" rx="1" fill="var(--accent)"/><path d="M8 37v4M40 37v4" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>
       <div><b>Equipment</b><span>Traps, cameras and gear</span></div>
     </a>
-    <a class="tile" href="traps/index.html" data-k="trap traps check checks skunk raccoon squirrel catch caught overdue set pull wildlife">
+    <a class="tile" href="traps/index.html" data-g="ops" data-k="trap traps check checks skunk raccoon squirrel catch caught overdue set pull wildlife">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="26" r="17" fill="currentColor"/><circle cx="24" cy="26" r="12.5" fill="none" stroke="var(--accent)" stroke-width="2.4"/><path d="M24 17v9l6 4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5h12M24 5v4" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="38" cy="12" r="4.5" fill="var(--accent)"/></svg></div>
       <div><b>Trap Checks</b><span>Set traps and check them on time</span></div>
     </a>
-    <a class="tile" href="licenses/index.html" data-k="license licenses certification applicator renewal expiration state">
+    <a class="tile" href="licenses/index.html" data-g="ops mgmt" data-k="license licenses certification applicator renewal expiration state">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="4" y="10" width="40" height="28" rx="4" fill="currentColor"/><circle cx="16" cy="21" r="4.5" fill="var(--accent)"/><path d="M8.5 32.5c.8-4.2 4-6.5 7.5-6.5s6.7 2.3 7.5 6.5z" fill="var(--accent)"/><path d="M27 19h12M27 25h12M27 31h8" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg></div>
       <div><b>Licenses</b><span>Applicator licenses and renewals</span></div>
     </a>
-    <a class="tile" href="measure/index.html" data-k="measure measuring square feet footage sq ft lawn yard property lot area acres map satellite perimeter address">
+    <a class="tile" href="measure/index.html" data-g="ops office" data-k="measure measuring square feet footage sq ft lawn yard property lot area acres map satellite perimeter address">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M8 34L20 8l20 10-6 22z" fill="currentColor"/><path d="M20 8l-12 26 26 6 6-22z" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="4 3" stroke-linejoin="round"/><g fill="var(--accent)" stroke="#fff" stroke-width="1.6"><circle cx="20" cy="8" r="3.4"/><circle cx="40" cy="18" r="3.4"/><circle cx="34" cy="40" r="3.4"/><circle cx="8" cy="34" r="3.4"/></g></svg></div>
       <div><b>Measure</b><span>Lawn and property square footage</span></div>
     </a>
-    <a class="tile" href="directory/index.html" data-k="directory contacts contact phone call text email team staff people owner tech csr payroll sales manager">
+    <a class="tile" href="directory/index.html" data-g="ops office mgmt" data-k="directory contacts contact phone call text email team staff people owner tech csr payroll sales manager">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="9" y="5" width="32" height="38" rx="4" fill="currentColor"/><rect x="5" y="11" width="6" height="4" rx="1.5" fill="currentColor"/><rect x="5" y="22" width="6" height="4" rx="1.5" fill="currentColor"/><rect x="5" y="33" width="6" height="4" rx="1.5" fill="currentColor"/><circle cx="25" cy="19" r="5.5" fill="var(--accent)"/><path d="M15.5 34c1-5.5 5-8.5 9.5-8.5s8.5 3 9.5 8.5z" fill="var(--accent)"/></svg></div>
       <div><b>Directory</b><span>Call, text or email the team</span></div>
     </a>
-    <a class="tile" href="mix/index.html" data-k="mix mixing calculator chemical rate rates ounces oz per gallon gallons backpack tank dilution label bifen talstar herbicide granular bait">
+    <a class="tile" href="mix/index.html" data-g="ops" data-k="mix mixing calculator chemical rate rates ounces oz per gallon gallons backpack tank dilution label bifen talstar herbicide granular bait">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M17 5h14v4h-2v9l10 18a5 5 0 0 1-4.4 7.4H13.4A5 5 0 0 1 9 36l10-18V9h-2z" fill="currentColor"/><path d="M13.5 30h21l3.6 6.6A2.5 2.5 0 0 1 36 40H12a2.5 2.5 0 0 1-2.2-3.4z" fill="var(--accent)"/><circle cx="21" cy="35" r="1.6" fill="#fff"/><circle cx="27" cy="33" r="1.2" fill="#fff"/></svg></div>
       <div><b>Mix Calculator</b><span>How much product per tank</span></div>
     </a>
-    <a class="tile" href="csr/index.html" data-k="csr playbook call calls phone script scripts customer office questions offer quote inspection faq pushback booking">
+    <a class="tile" href="csr/index.html" data-g="office" data-k="csr playbook call calls phone script scripts customer office questions offer quote inspection faq pushback booking">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M8 10a4 4 0 0 1 4-4h24a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H20l-8 7v-7a4 4 0 0 1-4-4z" fill="currentColor"/><g fill="var(--accent)"><circle cx="17" cy="19" r="2.6"/><circle cx="24" cy="19" r="2.6"/><circle cx="31" cy="19" r="2.6"/></g></svg></div>
       <div><b>CSR Playbook</b><span>What to ask and offer on calls</span></div>
     </a>
-    <a class="tile" href="https://webapp.spypoint.com/" target="_blank" rel="noopener" data-k="trail cam cams camera cameras spypoint photos pictures trap traps wildlife skunk raccoon cellular">
+    <a class="tile" href="https://webapp.spypoint.com/" data-g="ops" target="_blank" rel="noopener" data-k="trail cam cams camera cameras spypoint photos pictures trap traps wildlife skunk raccoon cellular">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="11" y="6" width="26" height="36" rx="5" fill="currentColor"/><circle cx="24" cy="20" r="7" fill="var(--accent)"/><circle cx="24" cy="20" r="3.2" fill="currentColor"/><rect x="17" y="32" width="14" height="4" rx="2" fill="var(--accent)"/><path d="M6 14h5M37 14h5" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>
       <div><b>Trail Cams</b><span>Open SPYPOINT to check cameras</span></div>
     </a>
-    <a class="tile" href="soon/index.html?t=training" data-k="training train learn videos course ride along certification ceu coming soon">
+    <a class="tile" href="soon/index.html?t=training" data-g="ops" data-k="training train learn videos course ride along certification ceu coming soon">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M4 18l20-10 20 10-20 10z" fill="currentColor"/><path d="M12 22v9c0 3 6 6 12 6s12-3 12-6v-9l-12 6z" fill="var(--accent)" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M42 19v11" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>
       <div><b>Training</b><span>Coming soon · Tech training and sign-offs</span></div>
     </a>
-    <a class="tile" href="soon/index.html?t=onboarding" data-k="onboarding new hire hiring first day checklist paperwork employee coming soon">
+    <a class="tile" href="onboarding/index.html" data-g="ops" data-k="onboarding new hire hiring first day checklist paperwork employee sign off ride along">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="20" cy="15" r="8" fill="currentColor"/><path d="M5 40c1-8 7-13 15-13s14 5 15 13z" fill="currentColor"/><circle cx="36" cy="32" r="9" fill="var(--accent)" stroke="currentColor" stroke-width="2.4"/><path d="M36 27v10M31 32h10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>
-      <div><b>Onboarding</b><span>Coming soon · New hire checklists</span></div>
+      <div><b>Onboarding</b><span>New tech checklist and supervisor sign-off</span></div>
     </a>
-    <a class="tile" href="soon/index.html?t=admin" data-k="admin manager settings records owner management office coming soon">
+    <a class="tile" href="soon/index.html?t=admin" data-g="mgmt" data-k="admin manager settings records owner management office coming soon">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M24 4l16 6v12c0 10-7 18-16 22C15 40 8 32 8 22V10z" fill="currentColor"/><path d="M17 23l5 5 9-10" fill="none" stroke="var(--accent)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div><b>Admin</b><span>Coming soon · Manager settings and records</span></div>
     </a>
-    <a class="tile" href="soon/index.html?t=sales" data-k="sales sell leads quote quotes d2d door to door script pitch close coming soon">
+    <a class="tile" href="soon/index.html?t=sales" data-g="office" data-k="sales sell leads quote quotes d2d door to door script pitch close coming soon">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M6 36l12-12 8 8 14-16" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 16h10v10" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="18" cy="24" r="3.4" fill="var(--accent)"/><circle cx="26" cy="32" r="3.4" fill="var(--accent)"/></svg></div>
       <div><b>Sales</b><span>Coming soon · Scripts, leads and quotes</span></div>
     </a>
-    <a class="tile" href="kpis/index.html" data-k="kpi kpis numbers goals revenue metrics dashboard stats scorecard vehicle sales cancellations">
+    <a class="tile" href="kpis/index.html" data-g="mgmt" data-k="kpi kpis numbers goals revenue metrics dashboard stats scorecard vehicle sales cancellations">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="6" y="26" width="8" height="14" rx="2" fill="currentColor"/><rect x="20" y="16" width="8" height="24" rx="2" fill="currentColor"/><rect x="34" y="8" width="8" height="32" rx="2" fill="var(--accent)" stroke="currentColor" stroke-width="2.4"/></svg></div>
       <div><b style="text-transform:none">KPIs</b><span>Weekly company numbers</span></div>
     </a>
-    <a class="tile" href="commission/index.html" data-k="commission commissions sales pay paycheck owed payout tracker">
+    <a class="tile" href="commission/index.html" data-g="office mgmt" data-k="commission commissions sales pay paycheck owed payout tracker">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="currentColor"/><path d="M30 17.5c-1.4-1.6-3.6-2.5-6-2.5-3.6 0-6 1.9-6 4.6 0 6.2 12.4 3.4 12.4 9.6 0 2.8-2.6 4.8-6.4 4.8-2.6 0-4.9-1-6.4-2.7M24 11v4M24 34v4" fill="none" stroke="var(--accent)" stroke-width="3.4" stroke-linecap="round"/></svg></div>
       <div><b>Commissions</b><span>Sales and commission owed</span></div>
     </a>
-    <a class="tile" href="manual/index.html" data-k="csr manual training onboarding sop retention cancel cancellation pricing price script scripts welcome call escalation bed bug job description schedule bonus">
+    <a class="tile" href="manual/index.html" data-g="office" data-k="csr manual training onboarding sop retention cancel cancellation pricing price script scripts welcome call escalation bed bug job description schedule bonus">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M6 10c6-2 12-2 18 2v28c-6-4-12-4-18-2z" fill="currentColor"/><path d="M42 10c-6-2-12-2-18 2v28c6-4 12-4 18-2z" fill="currentColor"/><path d="M28 18c3-1.4 6-1.6 9-.8M28 24c3-1.4 6-1.6 9-.8M28 30c3-1.4 6-1.6 9-.8" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round"/></svg></div>
       <div><b>CSR Manual</b><span>Scripts, pricing and how we do things</span></div>
     </a>
-    <a class="tile" href="sops/index.html" data-k="sop sops procedure procedures standard operating checklist template trapping raccoon skunk marmot inspection exclusion bait lure mosquito rodent vole weed lawn tree bare ground mixing ratio cancellation retention">
+    <a class="tile" href="sops/index.html" data-g="ops office" data-k="sop sops procedure procedures standard operating checklist template trapping raccoon skunk marmot inspection exclusion bait lure mosquito rodent vole weed lawn tree bare ground mixing ratio cancellation retention">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="9" y="7" width="30" height="36" rx="4" fill="currentColor"/><rect x="17" y="4" width="14" height="7" rx="2" fill="var(--accent)" stroke="currentColor" stroke-width="2.4"/><path d="M15 21l3 3 5-6M15 32l3 3 5-6M27 21h6M27 32h6" fill="none" stroke="var(--accent)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div><b>SOPs</b><span>Step-by-step for every job</span></div>
+    </a>
+    <a class="tile" href="time-off/index.html" data-g="ops office mgmt" data-k="time off request pto vacation sick day schedule leave attendance">
+      <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="5" y="9" width="38" height="34" rx="4" fill="currentColor"/><rect x="5" y="9" width="38" height="10" rx="4" fill="var(--accent)"/><path d="M15 5v9M33 5v9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M15 31l6 6 12-13" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -2)"/></svg></div>
+      <div><b>Time Off</b><span>Request days off</span></div>
+    </a>
+    <a class="tile" href="signatures/index.html" data-g="mgmt" data-k="signed documents signatures required policies handbook who signed unsigned missing employee acknowledgment hr">
+      <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M10 6h20l8 8v28a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" fill="currentColor"/><path d="M30 6v8h8" fill="var(--accent)" stroke="currentColor" stroke-width="2"/><path d="M15 28l6 6 12-13" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div><b>Signed Documents</b><span>Who has signed required documents</span></div>
+    </a>
+    <a class="tile" href="time-off-tracker/index.html" data-g="mgmt" data-k="time off tracker approve approval deny requests pto vacation block schedule strike attendance manager">
+      <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="5" y="9" width="38" height="34" rx="4" fill="currentColor"/><rect x="5" y="9" width="38" height="10" rx="4" fill="var(--accent)"/><path d="M15 5v9M33 5v9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M14 26h20M14 32h20M14 38h12" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/></svg></div>
+      <div><b>Time Off Tracker</b><span>Approve and track requests</span></div>
+    </a>
+    <a class="tile" href="policies/index.html" data-g="ops office" data-k="handbook employee policy policies driving vehicle credit card time off attendance strike pto vacation sign signature acknowledgment hr rules">
+      <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M10 6h20l8 8v28a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" fill="currentColor"/><path d="M30 6v8h8" fill="var(--accent)" stroke="currentColor" stroke-width="2"/><path d="M14 33c3-5 5-5 6-2s3 3 5-1 4-3 5 0 3 2 4 0" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 20h14M14 25h10" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round"/></svg></div>
+      <div><b>Handbook &amp; Policies</b><span>Read and sign company policies</span></div>
     </a>
     <p class="none" id="none" hidden>Nothing matches. Try the Field Guide for problems and treatments.</p>
   </nav>
   <div class="choose"><button type="button" id="pick">Choose tools</button><button type="button" id="all" hidden>Show all</button><button type="button" id="reorder" hidden>Reset order</button></div>
-  <footer>Internal tools for the Prominent team</footer>
+  <footer>Sample company for this demo</footer>
 </main>
 <script>
 (function(){ var q=document.getElementById('q'), nav=document.querySelector('.tiles'), tiles=[].slice.call(document.querySelectorAll('.tile')), none=document.getElementById('none');
   var pick=document.getElementById('pick'), all=document.getElementById('all'), hint=document.getElementById('hint'), choosing=false, hide=[];
+  var sect=document.getElementById('sect'), crumb=document.getElementById('crumb'), gname=document.getElementById('gname'), bar=document.querySelector('.choose');
+  var GROUPS={ops:'Operations',office:'Office Staff',mgmt:'Management'}, G='';
+  var MGMT_API='demo-api', gate=document.getElementById('gate'), gpin=document.getElementById('gpin'), gerr=document.getElementById('gerr'), gbtn=document.getElementById('gbtn'), mgmtOpen=false;
+  try{ sessionStorage.removeItem('hub.mgmt'); sessionStorage.removeItem('hub.mgmtpin'); }catch(e){}
   try{ hide=JSON.parse(localStorage.getItem('hub.hide')||'[]')||[]; }catch(e){ hide=[]; }
   tiles.forEach(function(t){ var c=document.createElement('i'); c.className='chk'; c.setAttribute('aria-hidden','true'); t.appendChild(c); });
+  var base=tiles.slice();
+  function inG(t){ return (' '+(t.getAttribute('data-g')||'')+' ').indexOf(' '+G+' ')>=0; }
   function save(){ try{ localStorage.setItem('hub.hide',JSON.stringify(hide)); }catch(e){} }
-  function paint(){ var words=q.value.toLowerCase().trim().split(/\s+/).filter(String), shown=0;
+  function paint(){ var words=q.value.toLowerCase().trim().split(/\s+/).filter(String), shown=0, home=!G;
+    sect.hidden=!home||words.length>0; crumb.hidden=home; gname.textContent=GROUPS[G]||'';
+    nav.hidden=home&&!words.length; bar.hidden=home;
     tiles.forEach(function(t){ var key=t.getAttribute('href'), off=hide.indexOf(key)>=0;
       var hay=(t.textContent+' '+t.getAttribute('data-k')).toLowerCase();
-      var ok=words.every(function(w){ return hay.indexOf(w)>=0 || hay.indexOf(w.replace(/s$/,''))>=0; });
+      var ok=(home||words.length||inG(t)) && words.every(function(w){ return hay.indexOf(w)>=0 || hay.indexOf(w.replace(/s$/,''))>=0; });
+      if(home&&!words.length) ok=false;
+      if(!mgmtOpen&&(t.getAttribute('data-g')||'').trim()==='mgmt') ok=false;
       t.hidden=!ok; t.classList.toggle('off', off && !words.length);
       if(choosing) t.setAttribute('aria-pressed', String(!off)); else t.removeAttribute('aria-pressed');
       if(ok && (choosing || !off || words.length)) shown++; });
-    none.hidden=shown>0;
-    if(!choosing && !words.length && shown===0){ none.hidden=false; none.textContent='All tools are hidden. Tap Choose tools to bring some back.'; }
+    none.hidden=shown>0||(home&&!words.length);
+    if(!choosing && !words.length && shown===0 && !home){ none.hidden=false; none.textContent='All tools here are hidden. Tap Choose tools to bring some back.'; }
     else none.textContent='Nothing matches. Try the Field Guide for problems and treatments.';
     all.hidden=!choosing || !hide.length; }
   pick.addEventListener('click',function(){ choosing=!choosing; nav.classList.toggle('choosing',choosing); hint.hidden=!choosing;
@@ -343,19 +416,21 @@ footer{margin-top:auto;font-size:.8rem;color:var(--muted);text-align:center}
   nav.addEventListener('click',function(e){ if(!choosing) return; var t=e.target.closest('.tile'); if(!t) return; e.preventDefault();
     var key=t.getAttribute('href'), i=hide.indexOf(key); if(i>=0) hide.splice(i,1); else hide.push(key); save(); paint(); });
   q.addEventListener('input',paint);
-  /* order: hold a tile, then drag it. Saved on this phone. */
+  /* order: hold a tile, then drag it. Saved on this phone, per section. */
   var reo=document.getElementById('reorder'), order=[];
-  try{ order=JSON.parse(localStorage.getItem('hub.order')||'[]')||[]; }catch(e){ order=[]; }
+  function okey(){ return 'hub.order.'+(G||'all'); }
+  function loadOrder(){ try{ order=JSON.parse(localStorage.getItem(okey())||'[]')||[]; }catch(e){ order=[]; } }
   function applyOrder(){ var by={}; tiles.forEach(function(t){ by[t.getAttribute('href')]=t; });
-    var end=none, list=order.filter(function(k){ return by[k]; }).map(function(k){ return by[k]; });
-    tiles.forEach(function(t){ if(list.indexOf(t)<0) list.push(t); });
-    list.forEach(function(t){ nav.insertBefore(t,end); }); }
-  function saveOrder(){ order=[].map.call(nav.querySelectorAll('.tile'),function(t){ return t.getAttribute('href'); });
-    try{ localStorage.setItem('hub.order',JSON.stringify(order)); }catch(e){} }
-  applyOrder();
+    var def=G?(DEF[G]||[]):[], list=order.filter(function(k){ return by[k]; }).map(function(k){ return by[k]; });
+    def.forEach(function(k){ if(by[k]&&list.indexOf(by[k])<0) list.push(by[k]); });
+    base.forEach(function(t){ if(list.indexOf(t)<0) list.push(t); });
+    list.forEach(function(t){ nav.insertBefore(t,none); }); }
+  function saveOrder(){ order=[].filter.call(nav.querySelectorAll('.tile'),function(t){ return !t.hidden; }).map(function(t){ return t.getAttribute('href'); });
+    try{ localStorage.setItem(okey(),JSON.stringify(order)); }catch(e){} }
+  var DEF={"ops": ["field-guide/index.html", "sops/index.html", "mix/index.html", "sds/index.html", "traps/index.html", "https://webapp.spypoint.com/", "equipment/index.html", "shop/index.html", "measure/index.html", "licenses/index.html", "directory/index.html", "policies/index.html", "time-off/index.html", "onboarding/index.html", "soon/index.html?t=training"], "office": ["manual/index.html", "csr/index.html", "pricing/index.html", "measure/index.html", "commission/index.html", "sops/index.html", "field-guide/index.html", "directory/index.html", "soon/index.html?t=sales", "policies/index.html", "time-off/index.html"], "mgmt": ["kpis/index.html", "commission/index.html", "licenses/index.html", "time-off-tracker/index.html", "signatures/index.html", "time-off/index.html", "directory/index.html", "soon/index.html?t=admin"]};
   var press=null, drag=null, blockClick=false;
   function pt(e){ var p=e.touches&&e.touches[0]||e.changedTouches&&e.changedTouches[0]||e; return {x:p.clientX,y:p.clientY}; }
-  function start(e){ if(e.button>0) return; var t=e.target.closest('.tile'); if(!t||q.value.trim()) return;
+  function start(e){ if(e.button>0) return; var t=e.target.closest('.tile'); if(!t||q.value.trim()||!G) return;
     var p=pt(e); press={t:t,x:p.x,y:p.y,timer:setTimeout(function(){ lift(t,p); },450)}; }
   function lift(t,p){ var r=t.getBoundingClientRect(); drag={t:t,gx:p.x-r.left,gy:p.y-r.top,x:p.x,y:p.y};
     t.classList.add('dragging'); nav.classList.add('sorting'); try{ navigator.vibrate&&navigator.vibrate(12); }catch(e){} place(); }
@@ -377,10 +452,16 @@ footer{margin-top:auto;font-size:.8rem;color:var(--muted);text-align:center}
   nav.addEventListener('contextmenu',function(e){ if(e.target.closest('.tile')) e.preventDefault(); });
   nav.addEventListener('dragstart',function(e){ e.preventDefault(); });
   nav.addEventListener('click',function(e){ if(blockClick){ e.preventDefault(); e.stopPropagation(); } },true);
-  reo.addEventListener('click',function(){ order=[]; try{ localStorage.removeItem('hub.order'); }catch(e){}
-    tiles.forEach(function(t){ nav.insertBefore(t,none); }); paint(); });
-  var basePaint=paint; paint=function(){ basePaint(); reo.hidden=!choosing||!order.length; };
-  paint();
+  reo.addEventListener('click',function(){ order=[]; try{ localStorage.removeItem(okey()); }catch(e){} applyOrder(); paint(); });
+  var basePaint=paint; paint=function(){ basePaint(); reo.hidden=!choosing||!order.length;
+    var gated=G==='mgmt'&&!mgmtOpen&&!q.value.trim(); gate.hidden=!gated; if(gated){ nav.hidden=true; bar.hidden=true; } };
+  gate.addEventListener('submit',function(e){ e.preventDefault(); var pin=gpin.value.trim(); if(!pin) return; gbtn.disabled=true; gbtn.textContent='Checking…'; gerr.hidden=true;
+    fetch(MGMT_API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({fn:'mgmtUnlock',args:[pin]})}).then(function(r){ return r.json(); }).then(function(j){ if(!j.ok) throw new Error(j.error||'Wrong PIN.');
+      mgmtOpen=true; gpin.value=''; paint(); }).catch(function(x){ gerr.textContent=/fetch|network/i.test(String(x.message))?'Could not check the PIN. Check your connection and try again.':String(x.message||x); gerr.hidden=false; gpin.value=''; })
+      .then(function(){ gbtn.disabled=false; gbtn.textContent='Open Management'; }); });
+  function route(){ var g=(location.hash||'').slice(1); G=GROUPS[g]?g:''; if(G!=='mgmt') mgmtOpen=false; if(choosing) pick.click(); q.value=''; loadOrder(); applyOrder(); paint(); window.scrollTo(0,0);}
+  window.addEventListener('hashchange',route);
+  route();
 })();
 </script>
 </body>
