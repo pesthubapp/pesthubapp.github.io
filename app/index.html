@@ -228,8 +228,54 @@ footer{margin-top:auto;font-size:.8rem;color:var(--muted);text-align:center}
 (function(){ var q=document.getElementById('q'), tiles=[].slice.call(document.querySelectorAll('.tile')), none=document.getElementById('none');
   q.addEventListener('input',function(){ var words=q.value.toLowerCase().trim().split(/\s+/).filter(String), shown=0;
     tiles.forEach(function(t){ var hay=(t.textContent+' '+t.getAttribute('data-k')).toLowerCase();
-      var ok=words.every(function(w){ return hay.indexOf(w)>=0 || hay.indexOf(w.replace(/s$/,''))>=0; }); t.hidden=!ok; if(ok) shown++; });
+      var ok=words.every(function(w){ return hay.indexOf(w)>=0 || hay.indexOf(w.replace(/s$/,''))>=0; }); ok=ok&&!t.classList.contains('ph-off'); t.hidden=!ok; if(ok) shown++; });
     none.hidden=shown>0; });
+})();
+</script>
+<style>
+.ph-tools{display:flex;justify-content:center}
+.ph-tools button{font:600 .95rem var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 18px;min-height:46px;cursor:pointer}
+.tile.ph-off{display:none!important}
+#phEmpty{text-align:center;color:var(--muted);margin:0}
+#phPick{position:fixed;inset:0;z-index:50;background:var(--bg);overflow:auto;padding:max(18px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 110px max(16px,env(safe-area-inset-left,0px))}
+#phPick .in{max-width:720px;margin:0 auto;display:grid;gap:12px}
+#phPick #phList{margin:0;max-width:none;width:100%}
+#phPick h2{font:700 1.7rem/1.1 var(--display);margin:0;text-transform:uppercase}
+#phPick p{margin:0;color:var(--muted)}
+#phPick label{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;cursor:pointer}
+#phPick label>span{min-width:0;flex:1;display:grid;gap:1px}
+#phPick label b{font-weight:600}
+#phPick label small{color:var(--muted);font-size:.86rem}
+#phPick input{width:22px;height:22px;accent-color:var(--accent);flex:none;margin:0}
+#phPick .count{font-size:.9rem}
+#phPick .foot{position:fixed;left:0;right:0;bottom:0;padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center}
+#phDone{width:min(100%,720px);min-height:50px;border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);font:700 1.05rem var(--body);cursor:pointer}
+</style>
+<script>
+(function(){
+var KEY='ph_tiles_off', tiles=[].slice.call(document.querySelectorAll('.tile')), nav=document.querySelector('.tiles');
+function read(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return mem; } }
+var mem=[], off=read();
+function save(){ mem=off; try{ localStorage.setItem(KEY,JSON.stringify(off)); }catch(e){} }
+function id(t){ return t.getAttribute('href'); }
+function apply(){ tiles.forEach(function(t){ t.classList.toggle('ph-off',off.indexOf(id(t))>=0); });
+ document.getElementById('phEmpty').hidden=off.length<tiles.length; }
+var bar=document.createElement('div'); bar.className='ph-tools'; bar.innerHTML='<button type="button" id="phOpen">Choose tools</button>';
+nav.parentNode.insertBefore(bar,nav.nextSibling);
+var e=document.createElement('p'); e.id='phEmpty'; e.hidden=true; e.textContent='No tools are turned on. Tap Choose tools to add some.'; nav.parentNode.insertBefore(e,bar);
+function count(){ var n=tiles.length-off.length, c=document.getElementById('phCount'); if(c) c.textContent=n+' of '+tiles.length+' tools on'; }
+function open(){ var d=document.createElement('div'); d.id='phPick'; d.setAttribute('role','dialog'); d.setAttribute('aria-label','Choose tools');
+ d.innerHTML='<div class="in"><h2>Choose tools</h2><p>Turn on only what your company uses. In a live copy, a manager sets this once for the whole team.</p><p class="count" id="phCount"></p><div class="in" id="phList"></div></div><div class="foot"><button type="button" id="phDone">Done</button></div>';
+ document.body.appendChild(d);
+ var list=d.querySelector('#phList');
+ tiles.forEach(function(t,i){ var l=document.createElement('label'), c=document.createElement('input'), s=document.createElement('span'), b=document.createElement('b'), m=document.createElement('small');
+  c.type='checkbox'; c.id='phT'+i; c.checked=off.indexOf(id(t))<0; b.textContent=t.querySelector('b').textContent; m.textContent=t.querySelector('span').textContent;
+  c.addEventListener('change',function(){ off=off.filter(function(x){return x!==id(t);}); if(!c.checked) off.push(id(t)); save(); apply(); count(); });
+  s.appendChild(b); s.appendChild(m); l.appendChild(c); l.appendChild(s); list.appendChild(l); });
+ count(); document.body.style.overflow='hidden';
+ d.querySelector('#phDone').addEventListener('click',function(){ d.remove(); document.body.style.overflow=''; var q=document.getElementById('q'); if(q) q.dispatchEvent(new Event('input')); window.scrollTo(0,0); }); }
+document.getElementById('phOpen').addEventListener('click',open);
+apply();
 })();
 </script>
 </body>
