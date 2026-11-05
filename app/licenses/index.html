@@ -100,6 +100,13 @@ var SOPS={sops:[
  {id:'rodent',cat:'Rodents',title:'Rodent inspection',sub:'Sample SOP',blocks:[{t:'h2',x:'Three questions to answer'},{t:'ul',items:['How many?','Where are they traveling?','How are they getting in?']},{t:'h2',x:'Walk the property'},{t:'check',items:['Foundation and utility penetrations','Garage door seals','Attic and crawl space access','Food and water sources']}]},
  {id:'gpc',cat:'General pest',title:'Quarterly service visit',sub:'Sample SOP',blocks:[{t:'h2',x:'At the home'},{t:'ol',items:['Talk to the customer about what they have seen.','Inspect the exterior and knock down webs.','Treat according to the product label.','Leave a service note.']},{t:'note',label:'Always',x:'The product label is the law. Check the rate before you mix.'}]},
  {id:'cancel',cat:'Office',title:'Handling a cancellation',sub:'Sample SOP',blocks:[{t:'h2',x:'Steps'},{t:'ol',items:['Ask why they want to cancel.','Offer a re-service if the problem is results.','Record the reason and process the request.']}]}]};
+function hr(){ var d=db(); if(!d.ob){ var t0=Date.now();
+ d.ob=[{id:'H1',tech:'Sam Rivera',branch:'IF',start:dateIn(1),supervisor:'Marcus Hale',status:'In progress',signed:'',file:'',checks:{a1:{by:'Rosa Delgado',at:dateIn(-3)},a2:{by:'Rosa Delgado',at:dateIn(-3)},t_hb:{by:'Sam Rivera',at:dateIn(-2)}}},{id:'H2',tech:'Jenna Sloan',branch:'BZ',start:dateIn(-40),supervisor:'Cody Brandt',status:'Signed off',signed:'Sep 26, 2026 at 3:12 PM',file:'',checks:{}}];
+ d.sigs=[{name:'Marcus Hale',policy:'Driving Policy',version:'Jan 1, 2026',when:t0-9*DAY,url:''},{name:'Marcus Hale',policy:'Company Credit Card Policy',version:'Jan 1, 2026',when:t0-9*DAY,url:''},{name:'Marcus Hale',policy:'Employee Handbook',version:'Sample Edition',when:t0-9*DAY,url:''},{name:'Marcus Hale',policy:'Time Off Policy',version:'Jan 1, 2026',when:t0-9*DAY,url:''},{name:'Dana Whitfield',policy:'Employee Handbook',version:'Sample Edition',when:t0-6*DAY,url:''},{name:'Dana Whitfield',policy:'Driving Policy',version:'Jan 1, 2026',when:t0-6*DAY,url:''},{name:'Luis Ortega',policy:'Driving Policy',version:'Dec 1, 2025',when:t0-120*DAY,url:''}];
+ d.to=[{id:'R1',name:'Luis Ortega',branch:'South Branch',start:dateIn(9),end:dateIn(10),hours:16,pay:'Paid',status:'Pending',by:'',reason:'',notice:9,blocked:false},{id:'R2',name:'Priya Nair',branch:'South Branch',start:dateIn(2),end:dateIn(2),hours:8,pay:'Unpaid',status:'Pending',by:'',reason:'',notice:2,blocked:false},{id:'R3',name:'Cody Brandt',branch:'East Branch',start:dateIn(14),end:dateIn(18),hours:40,pay:'Paid',status:'Approved',by:'Rosa Delgado',reason:'',notice:21,blocked:false}];
+ save(); } return d; }
+var OB_PLAN=[{phase:'Before Day 1',group:'Paperwork',items:[['a1','Offer letter signed'],['a2','Tax and payroll forms complete'],['a3','Applicator license study guide sent']]},{phase:'Before Day 1',group:'Required documents',items:[['t_hb','Employee Handbook signed'],['t_drive','Driving Policy signed'],['t_card','Company Credit Card Policy signed']]},{phase:'Day 1',group:'Morning review',items:[['b1','Tour the shop and product storage'],['b2','Review label and PPE basics'],['b3','Install the app and find the SOPs']]},{phase:'Day 1',group:'Afternoon ride-along',items:[['b4','Shadow service visits with the supervisor']]},{phase:'Day 2',group:'Half day ride-along',items:[['c1','Tech completes visits with the supervisor watching'],['c2','Supervisor reviews notes and customer conversations']]}];
+var OB_SIGN=[['d1','Can mix and apply products according to the label'],['d2','Can complete a service note correctly'],['d3','Knows who to call for spills, injuries or exposures']];
 var F={
  getDirectory:function(){ return {people:db().people,sheetUrl:''}; },
  eqList:eq,
@@ -138,6 +145,20 @@ var F={
  adminAddTech:function(br,p,n){ pin(p); var d=db(); if(d.T.indexOf(n)<0) d.T.push(n); save(); return shop(br); },
  adminRemoveTech:function(br,p,n){ pin(p); var d=db(); d.T=d.T.filter(function(x){return x!==n;}); save(); return shop(br); },
  adminSettings:function(br,p,em){ pin(p); var d=db(); if(em!=null) d.email=em; save(); return shop(br); },
+ mgmtUnlock:function(p){ pin(p); return true; },
+ obList:function(){ var d=hr(); return {plan:OB_PLAN,signoff:OB_SIGN,hires:d.ob}; },
+ obStart:function(x){ var d=hr(), id='H'+Date.now().toString(36); d.ob.push({id:id,tech:x.tech,branch:x.branch,start:x.start,supervisor:x.supervisor,status:'In progress',signed:'',file:'',checks:{}}); save(); return id; },
+ obCheck:function(id,k,on,by){ var d=hr(), h=find(d.ob,id); if(on) h.checks[k]={by:by,at:dateIn(0)}; else delete h.checks[k]; save(); return h.checks; },
+ obSign:function(x){ pin(x.pin); var d=hr(), h=find(d.ob,x.id); h.status='Signed off'; h.supervisor=x.supervisor; h.signed=new Date().toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'})+' at '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); save(); return true; },
+ obRemove:function(id,p){ pin(p); var d=hr(); d.ob=d.ob.filter(function(h){return h.id!==id;}); save(); return true; },
+ policySigned:function(n){ return hr().sigs.filter(function(s){return s.name===n;}); },
+ policySign:function(x){ var d=hr(), w=Date.now(); d.sigs.push({name:x.name,policy:x.title,version:x.version,when:w,url:''}); save(); return {when:new Date(w).toLocaleDateString(),emailed:false}; },
+ polStatus:function(){ var d=hr(); return {people:d.people,sigs:d.sigs}; },
+ toMine:function(n){ return hr().to.filter(function(r){return r.name===n;}); },
+ toSubmit:function(x){ var d=hr(), s=new Date(x.start+'T12:00:00'), n=Math.round((s-new Date())/DAY), p=d.people.filter(function(q){return q.name===x.name;})[0]; d.to.unshift({id:'R'+Date.now().toString(36),name:x.name,branch:p?p.branch:'',start:x.start,end:x.end,hours:x.hours,pay:x.pay,status:'Pending',by:'',reason:'',notice:n,blocked:false}); save(); return {late:n<3}; },
+ toAdmin:function(){ return hr().to; },
+ toDecide:function(p,id,st,by,why){ var d=hr(), r=find(d.to,id); r.status=st; r.by=by; r.reason=why||''; save(); return d.to; },
+ toBlocked:function(p,id,v){ var d=hr(), r=find(d.to,id); r.blocked=v; save(); return d.to; },
  kpiData:function(p){ pin(p); return kpiSeed(); },
  commList:function(){ var c=comm(); return Object.keys(c).map(function(k){ return {key:k,name:c[k].name,hasPw:true}; }); },
  commData:function(who,pw){ cpw(pw); return commView(who); },
@@ -322,6 +343,7 @@ function vForm(){
     '<label>State<select name="state" required><option value="">Choose…</option>'+STATES.map(function(x){ return '<option value="'+x[0]+'"'+(st===x[0]?' selected':'')+'>'+x[1]+'</option>'; }).join('')+'</select></label>'+
     '<label>License #<input name="number" value="'+esc(r.number)+'" autocomplete="off"></label>'+
     '<label>Expiration date<input name="expires" type="date" required value="'+esc(r.expires)+'"></label>'+
+    '<label>Email for renewal reminders<input name="email" type="email" inputmode="email" autocomplete="email" required placeholder="you@example.com" value="'+esc(r.email)+'"></label>'+
     '</div><div class="bar" style="justify-content:flex-end">'+(S.edit?'<button class="btn" type="button" data-a="cancelEdit">Cancel</button>':'')+
     '<button class="btn primary" type="submit"'+(S.busy?' disabled':'')+'>'+(S.busy?'Saving…':(S.edit&&S.edit.id?'Save changes':'Add license'))+'</button></div>'+
     (S.edit&&S.edit.id?'<div class="bar" style="border-top:1px solid var(--line);padding-top:12px">'+(S.confirm===S.edit.id?'<span>Remove this license?</span><button class="btn danger sm" type="button" data-a="del" data-id="'+S.edit.id+'">Yes, remove</button><button class="btn sm" type="button" data-a="noconf">Keep</button>':
