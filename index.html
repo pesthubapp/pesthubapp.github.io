@@ -120,6 +120,29 @@ section{padding-block:84px}
 .more{margin-top:26px;color:var(--muted);text-align:center}
 .pstage{position:relative;height:560px;min-width:0}
 .pstage .phone{left:50%;top:0;width:272px;height:556px;margin-left:-136px;z-index:1;position:absolute}
+/* full feature list */
+.all{background:var(--wash)}
+.all-group{margin-top:40px}
+.all-group:first-of-type{margin-top:0}
+.all-group>h3{font-size:1.3rem;font-weight:700}
+.all-group>p{margin:4px 0 16px;color:var(--muted)}
+.fgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.fn{background:#fff;border:1px solid var(--line);border-radius:14px;min-width:0}
+.fn summary{display:grid;grid-template-columns:minmax(0,1fr) 16px;gap:2px 10px;align-items:center;padding:16px 18px;min-height:48px;cursor:pointer;list-style:none}
+.fn summary::-webkit-details-marker{display:none}
+.fn summary b{font:600 1.02rem/1.3 var(--display);color:var(--ink)}
+.fn summary span{grid-column:1;color:var(--muted);font-size:.95rem;line-height:1.35}
+.fn summary svg{grid-column:2;grid-row:1/span 2;width:16px;height:16px;color:var(--green);transition:transform .18s ease}
+.fn[open] summary svg{transform:rotate(180deg)}
+.fn ul{list-style:none;margin:0;padding:0 18px 14px;display:grid;gap:6px;font-size:.98rem;line-height:1.4}
+.fn li{position:relative;padding-left:16px}
+.fn li::before{content:"";position:absolute;left:1px;top:.55em;width:6px;height:6px;border-radius:50%;background:var(--green)}
+.fn a{display:block;padding:0 18px 16px;font-weight:600;font-size:.95rem}
+.fn:only-child{grid-column:1/-1}
+.fn:only-child ul{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px}
+.soon{display:flex;flex-wrap:wrap;gap:10px;list-style:none;margin:0;padding:0}
+.soon li{background:#fff;border:1px dashed #b7c4bb;border-radius:12px;padding:10px 14px;min-width:0}
+.soon b{color:var(--ink);font-weight:600}
 /* field */
 .split{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:48px;align-items:center}
 .field .copy{display:grid;gap:18px;justify-items:start;min-width:0}
@@ -154,9 +177,9 @@ footer small{color:var(--muted);font-size:.9rem}
 /* reveal */
 .js .rv{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
 .js .rv.in{opacity:1;transform:none}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.js .rv{opacity:1;transform:none;transition:none}.btn,.card,.tab,.screen iframe{transition:none}.btn:hover,.card:hover{transform:none}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.js .rv{opacity:1;transform:none;transition:none}.btn,.card,.tab,.screen iframe,.fn summary svg{transition:none}.btn:hover,.card:hover{transform:none}}
 @media (max-width:1020px){
-  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cards,.fgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .split{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:900px){
@@ -185,7 +208,7 @@ footer small{color:var(--muted);font-size:.9rem}
   .ps .arrow{transform:rotate(90deg);height:22px}
   .ps .lbls{display:none}
   .ps .cell{min-height:58px;padding:12px 15px}
-  .cards,.keep,.roles{grid-template-columns:minmax(0,1fr)}
+  .cards,.keep,.roles,.fgrid,.fn:only-child ul{grid-template-columns:minmax(0,1fr)}
   .card{padding:20px}
   .tabs{margin-inline:-20px;padding-inline:20px}
   .panel{grid-template-columns:minmax(0,1fr);padding:22px 18px 0;gap:22px;border-radius:20px}
@@ -214,7 +237,7 @@ footer small{color:var(--muted);font-size:.9rem}
     <span class="eyebrow">Built for Pest &amp; Wildlife Professionals</span>
     <h1>Your Entire Pest Control Operation. <em>One Hub.</em></h1>
     <p class="lede">Stop searching through texts, spreadsheets, and paperwork. Give your entire team instant access to your company’s pricing, procedures, inventory, equipment, and field tools.</p>
-    <div class="ctas"><a class="btn primary" href="app/index.html">Explore the Live Demo</a><a class="btn ghost" href="#features">See All Features</a></div>
+    <div class="ctas"><a class="btn primary" href="app/index.html">Explore the Live Demo</a><a class="btn ghost" href="#all-features">See All Features</a></div>
     <p class="note">No sign-up. No credit card. Just explore.</p>
   </div>
   <div class="stage" aria-label="PestHub running on phones, showing the live demo">
@@ -255,7 +278,13 @@ footer small{color:var(--muted);font-size:.9rem}
     <div class="pcopy"><h3 id="pt"></h3><p id="pp"></p><ul id="pl"></ul><a class="btn primary" id="pa" href="app/index.html">Explore the Tools</a></div>
     <div class="pstage" aria-hidden="true"><div class="phone"><div class="screen" id="ps"></div></div></div>
   </div>
-  <p class="more rv">Also in the demo: My Dashboard, Attendance Strikes, Mix Calculator, Measure, Trail Cams, CSR Playbook, CSR Manual, KPIs, Commissions, Directory, Handbook &amp; Policies and Signed Documents.</p>
+  <p class="more rv">Also in the demo: My Dashboard, Attendance Strikes, Mix Calculator, Measure, Trail Cams, CSR Playbook, CSR Manual, KPIs, Commissions, Directory, Handbook &amp; Policies and Signed Documents. <a href="#all-features">See the full list</a>.</p>
+</div></section>
+
+<section class="all" id="all-features"><div class="wrap">
+  <div class="head center rv"><span class="eyebrow">Everything Included</span><h2>Every Tool and Function in PestHub.</h2><p>23 tools for your whole team, with 3 more on the way.</p></div>
+  <div id="fnlist"></div>
+  <noscript><p class="more">Open the <a href="app/index.html">live demo</a> to see every tool.</p></noscript>
 </div></section>
 
 <section class="field" id="field"><div class="wrap">
@@ -317,6 +346,44 @@ var TOOLS=[
  {n:'Onboarding',s:'app/onboarding/index.html',h:'Bring New Techs Up to Speed',p:'Follow one checklist from offer to ride-along to supervisor sign-off.',l:['Track progress for each new hire','Checks show who did what','Supervisor signs off on the phone']},
  {n:'Time Off',s:'app/time-off/index.html',h:'Requests Without the Back and Forth',p:'Employees request days off and managers approve from one tracker.',l:['Short notice is flagged','Approve or deny with a reason','Track what still needs scheduling']}
 ];
+var FEATURES=[
+ {g:'Across the Whole App',d:'Built into PestHub everywhere your team uses it.',t:[
+  {n:'Your Hub',s:'Home screen for the whole company',u:'',l:['Search anything from the home screen','Sections for Operations, Office Staff and Management','Choose which tools show on each phone','Manager-only areas protected by a PIN','Opens from a link and saves to the home screen, with no app store','Trap checks, product checkouts and equipment changes held offline, then sent when signal returns']}]},
+ {g:'For Everyone',d:'Tools every employee can use.',t:[
+  {n:'My Dashboard',s:'Your attendance and time off',u:'me',l:['Personal sign-in with name and PIN','See your attendance strikes and resets','See your time off balance and requests','Delete a time off request']},
+  {n:'Directory',s:'Team contacts',u:'directory',l:['Call, text or email anyone on the team','Names, roles and branches in one place']},
+  {n:'Time Off',s:'Request days off',u:'time-off',l:['Request paid or unpaid days off','See the status of your requests','Short-notice requests are flagged']},
+  {n:'Handbook & Policies',s:'Read and sign',u:'policies',l:['Read the handbook and company policies','Sign on your phone','See what still needs your signature','Signed copies are saved for the office']}]},
+ {g:'For Technicians and the Shop',d:'Answers and tools for the field.',t:[
+  {n:'Field Guide',s:'Problems, products and policy',u:'field-guide',l:['Search by what the customer describes','Filter by branch and category','Browse problems or products and tools','See the fix, products, pricing and what not to promise']},
+  {n:'SOPs',s:'Step-by-step for every job',u:'sops',l:['Search across every SOP','Organized by category','Built-in checklists']},
+  {n:'Mix Calculator',s:'How much product per tank',u:'mix',l:['Spray, turf and weed, granular, bait and ready-to-use products','Standard and heavy or initial rates','Combine products for a tank mix']},
+  {n:'SDS & Labels',s:'Safety data and product labels',u:'sds',l:['Search your product list','Open Safety Data Sheets and mixing notes','Link to the official, current product label']},
+  {n:'Trap Checks',s:'Set traps and check them on time',u:'traps',l:['Set a trap with its address, target and check schedule','Overdue traps rise to the top','Log catches, checks and pulls','Filter by tech or branch']},
+  {n:'Trail Cams',s:'Check your cameras',u:'',l:['Open your SPYPOINT account from the hub']},
+  {n:'Equipment',s:'Traps, cameras and gear',u:'equipment',l:['Check gear in and out','See what’s out and with whom','Spot items out for over a week','Managers add, edit and remove items']},
+  {n:'Inventory',s:'Shop supplies in and out',u:'shop',l:['Check out and return products by name','Separate inventory for each branch','Every transaction logged by name and time','Restock email alerts','Managers restock and edit products and the tech list']},
+  {n:'Measure',s:'Lawn and property square footage',u:'measure',l:['Search an address on the map','Tap the corners to measure an area','Measure more than one area on a property']},
+  {n:'Onboarding',s:'New tech checklist',u:'onboarding',l:['Start a checklist for each new hire','Track progress and who completed each step','Supervisor signs off on the phone']}]},
+ {g:'For Office Staff',d:'What CSRs and sales need while the customer is on the line.',t:[
+  {n:'Pricing',s:'Standard prices and floors',u:'pricing',l:['Prices organized by service','Floor prices stay consistent','Managers update prices behind a PIN']},
+  {n:'CSR Playbook',s:'What to ask and offer on calls',u:'csr',l:['Find the pest the caller describes','Questions to ask the customer','Call flow to the right offer','Answers to common questions']},
+  {n:'CSR Manual',s:'Scripts and how we do things',u:'manual',l:['Quick-start guide and customer service SOP','Retention and escalation guides','Welcome call and inside sales scripts']},
+  {n:'Commissions',s:'Sales and commission owed',u:'commission',l:['Password-protected view for each salesperson','Log new sales','See current and past commissions','Period and year-to-date totals']}]},
+ {g:'For Managers',d:'Oversight of your people, compliance and numbers.',t:[
+  {n:'KPIs',s:'Weekly company numbers',u:'kpis',l:['Manager PIN required','Vehicle revenue and office numbers','Tech time on job and reservices','Week-by-week history']},
+  {n:'Licenses',s:'Applicator licenses and renewals',u:'licenses',l:['Add, edit and remove licenses','Expired and due-soon counts','Reminder emails on your schedule','Organized by technician']},
+  {n:'Time Off Tracker',s:'Approve and track requests',u:'time-off-tracker',l:['Approve or deny with a reason','Short notice is flagged','Track what still needs scheduling']},
+  {n:'Attendance Strikes',s:'Track strikes and resets',u:'strikes',l:['Issue a strike or record a no-strike decision','Log when a strike is shared and handle disputes','Automatic reset at 3 strikes, with follow-up tracking','Set time off allowances for each employee']},
+  {n:'Signed Documents',s:'Who has signed what',u:'signatures',l:['See signatures for each employee and document','Filter to who still needs to sign']}]}
+];
+var SOON=[['Training','Tech training and sign-offs'],['Sales','Scripts, leads and quotes'],['Admin','Manager settings and records']];
+(function(){ var box=document.getElementById('fnlist'), mq=matchMedia('(max-width:640px)'), chev='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+ function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+ box.innerHTML=FEATURES.map(function(g){ return '<div class="all-group"><h3 class="rv">'+esc(g.g)+'</h3><p class="rv">'+esc(g.d)+'</p><div class="fgrid">'+g.t.map(function(t){
+  return '<details class="fn rv"'+(mq.matches?'':' open')+'><summary><b>'+esc(t.n)+'</b><span>'+esc(t.s)+'</span>'+chev+'</summary><ul>'+t.l.map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul>'+(t.u?'<a href="app/'+t.u+'/index.html">Open in the demo</a>':'')+'</details>'; }).join('')+'</div></div>'; }).join('')
+  +'<div class="all-group"><h3 class="rv">Coming Soon</h3><p class="rv">On the way, and not yet in the demo.</p><ul class="soon rv">'+SOON.map(function(s){ return '<li><b>'+esc(s[0])+'</b>: '+esc(s[1])+'</li>'; }).join('')+'</ul></div>';
+})();
 function fit(sc){ var f=sc.querySelector('iframe'); if(!f) return; var w=sc.clientWidth, k=w/390; f.style.transform='scale('+k+')'; f.style.height=Math.ceil(sc.clientHeight/k)+'px'; }
 function polish(f){ try{ var d=f.contentDocument, st=d.createElement('style'); st.textContent='#tsbar{display:none!important}body{padding-top:30px!important}html{scrollbar-width:none}::-webkit-scrollbar{display:none}'; d.head.appendChild(st); }catch(e){} f.classList.add('on'); }
 function frame(sc,src,title){ var f=sc.querySelector('iframe');
