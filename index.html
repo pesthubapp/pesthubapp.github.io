@@ -122,6 +122,11 @@ section{padding-block:84px}
 .pstage .phone{left:50%;top:0;width:272px;height:556px;margin-left:-136px;z-index:1;position:absolute}
 /* full feature list */
 .all{background:var(--wash)}
+.custom{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px 36px;align-items:center;margin-bottom:44px;padding:30px;border-radius:18px;background:var(--green-soft);border:1px solid #c5dfcd}
+.custom h3{font-size:1.45rem;font-weight:700;margin-bottom:8px}
+.custom ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 20px;color:var(--ink);font-weight:600}
+.custom li{position:relative;padding-left:24px;line-height:1.35}
+.custom li::before{content:"";position:absolute;left:5px;top:.2em;width:6px;height:11px;border:solid var(--green);border-width:0 2.4px 2.4px 0;transform:rotate(45deg)}
 .all-group{margin-top:40px}
 .all-group:first-of-type{margin-top:0}
 .all-group>h3{font-size:1.3rem;font-weight:700}
@@ -180,7 +185,7 @@ footer small{color:var(--muted);font-size:.9rem}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.js .rv{opacity:1;transform:none;transition:none}.btn,.card,.tab,.screen iframe,.fn summary svg{transition:none}.btn:hover,.card:hover{transform:none}}
 @media (max-width:1020px){
   .cards,.fgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .split{grid-template-columns:minmax(0,1fr)}
+  .split,.custom{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:900px){
   .hero .wrap{grid-template-columns:minmax(0,1fr);gap:34px;padding-top:34px;padding-bottom:48px}
@@ -208,7 +213,8 @@ footer small{color:var(--muted);font-size:.9rem}
   .ps .arrow{transform:rotate(90deg);height:22px}
   .ps .lbls{display:none}
   .ps .cell{min-height:58px;padding:12px 15px}
-  .cards,.keep,.roles,.fgrid,.fn:only-child ul{grid-template-columns:minmax(0,1fr)}
+  .cards,.keep,.roles,.fgrid,.fn:only-child ul,.custom,.custom ul{grid-template-columns:minmax(0,1fr)}
+  .custom{padding:22px 20px;margin-bottom:32px}
   .card{padding:20px}
   .tabs{margin-inline:-20px;padding-inline:20px}
   .panel{grid-template-columns:minmax(0,1fr);padding:22px 18px 0;gap:22px;border-radius:20px}
@@ -236,7 +242,7 @@ footer small{color:var(--muted);font-size:.9rem}
   <div class="copy">
     <span class="eyebrow">Built for Pest &amp; Wildlife Professionals</span>
     <h1>Your Entire Pest Control Operation. <em>One Hub.</em></h1>
-    <p class="lede">Stop searching through texts, spreadsheets, and paperwork. Give your entire team instant access to your company’s pricing, procedures, inventory, equipment, and field tools.</p>
+    <p class="lede">Stop searching through texts, spreadsheets, and paperwork. Give your entire team instant access to your company’s pricing, procedures, inventory, equipment, and field tools, all customized to how your company operates.</p>
     <div class="ctas"><a class="btn primary" href="app/index.html">Explore the Live Demo</a><a class="btn ghost" href="#all-features">See All Features</a></div>
     <p class="note">No sign-up. No credit card. Just explore.</p>
   </div>
@@ -272,7 +278,7 @@ footer small{color:var(--muted);font-size:.9rem}
 </div></section>
 
 <section class="show" id="tools"><div class="wrap">
-  <div class="head center rv"><span class="eyebrow">Explore the Tools</span><h2>One Hub. Every Tool Your Team Needs.</h2><p>Pick a tool to see it running in the demo, with sample data.</p></div>
+  <div class="head center rv"><span class="eyebrow">Explore the Tools</span><h2>One Hub. Every Tool Your Team Needs.</h2><p>Pick a tool to see it running in the demo, with sample data. Your version is customized to your company.</p></div>
   <div class="tabs" id="tabs" role="tablist" aria-label="PestHub tools"></div>
   <div class="panel" id="panel" role="tabpanel" tabindex="0">
     <div class="pcopy"><h3 id="pt"></h3><p id="pp"></p><ul id="pl"></ul><a class="btn primary" id="pa" href="app/index.html">Explore the Tools</a></div>
@@ -283,6 +289,10 @@ footer small{color:var(--muted);font-size:.9rem}
 
 <section class="all" id="all-features"><div class="wrap">
   <div class="head center rv"><span class="eyebrow">Everything Included</span><h2>Every Tool and Function in PestHub.</h2><p>23 tools for your whole team, with 3 more on the way.</p></div>
+  <div class="custom rv">
+    <div><h3>Customized for Your Company</h3><p>The demo shows one sample company. Your PestHub is customized to your company’s operations and policies, so it works the way your business already does.</p></div>
+    <ul><li>Your services and pricing</li><li>Your SOPs and field guide</li><li>Your products and mix rates</li><li>Your handbook and policies</li><li>Your attendance and time off rules</li><li>Your commission structure and KPIs</li></ul>
+  </div>
   <div id="fnlist"></div>
   <noscript><p class="more">Open the <a href="app/index.html">live demo</a> to see every tool.</p></noscript>
 </div></section>
@@ -311,6 +321,7 @@ footer small{color:var(--muted);font-size:.9rem}
 <section class="faq"><div class="wrap">
   <div class="head center rv"><h2>Common Questions</h2></div>
   <div class="list rv">
+    <details open><summary>Is PestHub customized for my company?</summary><p>Yes. The demo uses a sample company. Your version is customized to your company’s operations and policies, including your pricing, procedures, products, handbook and attendance rules.</p></details>
     <details><summary>Does PestHub replace my scheduling or CRM software?</summary><p>No. PestHub is an internal operations toolkit that works alongside the field service software you already use.</p></details>
     <details><summary>Do techs need an app store download?</summary><p>No. PestHub opens from a link and saves to the home screen like an app, on a phone or a shop tablet.</p></details>
     <details><summary>What happens when there’s no signal?</summary><p>Crawl spaces and rural routes lose signal. Trap checks, product checkouts and equipment changes are held on the phone and sent when the connection comes back.</p></details>
@@ -374,7 +385,7 @@ var FEATURES=[
   {n:'KPIs',s:'Weekly company numbers',u:'kpis',l:['Manager PIN required','Vehicle revenue and office numbers','Tech time on job and reservices','Week-by-week history']},
   {n:'Licenses',s:'Applicator licenses and renewals',u:'licenses',l:['Add, edit and remove licenses','Expired and due-soon counts','Reminder emails on your schedule','Organized by technician']},
   {n:'Time Off Tracker',s:'Approve and track requests',u:'time-off-tracker',l:['Approve or deny with a reason','Short notice is flagged','Track what still needs scheduling']},
-  {n:'Attendance Strikes',s:'Track strikes and resets',u:'strikes',l:['Issue a strike or record a no-strike decision','Log when a strike is shared and handle disputes','Automatic reset at 3 strikes, with follow-up tracking','Set time off allowances for each employee']},
+  {n:'Attendance Strikes',s:'Track strikes and resets',u:'strikes',l:['Customized to your company’s attendance policy','Issue a strike or record a no-strike decision','Log when a strike is shared and handle disputes','Track resets and follow-ups','Set time off allowances for each employee']},
   {n:'Signed Documents',s:'Who has signed what',u:'signatures',l:['See signatures for each employee and document','Filter to who still needs to sign']}]}
 ];
 var SOON=[['Training','Tech training and sign-offs'],['Sales','Scripts, leads and quotes'],['Admin','Manager settings and records']];
