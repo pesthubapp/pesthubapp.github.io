@@ -107,6 +107,22 @@ function hr(){ var d=db(); if(!d.ob){ var t0=Date.now();
  save(); } return d; }
 var OB_PLAN=[{phase:'Before Day 1',group:'Paperwork',items:[['a1','Offer letter signed'],['a2','Tax and payroll forms complete'],['a3','Applicator license study guide sent']]},{phase:'Before Day 1',group:'Required documents',items:[['t_hb','Employee Handbook signed'],['t_drive','Driving Policy signed'],['t_card','Company Credit Card Policy signed']]},{phase:'Day 1',group:'Morning review',items:[['b1','Tour the shop and product storage'],['b2','Review label and PPE basics'],['b3','Install the app and find the SOPs']]},{phase:'Day 1',group:'Afternoon ride-along',items:[['b4','Shadow service visits with the supervisor']]},{phase:'Day 2',group:'Half day ride-along',items:[['c1','Tech completes visits with the supervisor watching'],['c2','Supervisor reviews notes and customer conversations']]}];
 var OB_SIGN=[['d1','Can mix and apply products according to the label'],['d2','Can complete a service note correctly'],['d3','Knows who to call for spills, injuries or exposures']];
+function addD(s,n){ var p=String(s).split('-'), x=new Date(+p[0],p[1]-1,+p[2]+n); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
+function sk(){ var d=hr(); if(!d.sk){ d.sk={inc:[
+ {incident:'I1',employee:'Luis Ortega',branch:'South Branch',type:'Late notice',count:1,live:1,incidentDate:dateIn(-20),note:'',by:'Rosa Delgado',state:'Active',expires:dateIn(345),shared:dateIn(-19),sharedHow:'In person',shareBy:dateIn(-18),disputeBy:dateIn(-14),disputed:'',disputeResult:''},
+ {incident:'I2',employee:'Cody Brandt',branch:'East Branch',type:'No-call/no-show',count:2,live:2,incidentDate:dateIn(-1),note:'',by:'Rosa Delgado',state:'Active',expires:dateIn(364),shared:'',sharedHow:'',shareBy:dateIn(1),disputeBy:'',disputed:'',disputeResult:''},
+ {incident:'I3',employee:'Dana Whitfield',branch:'North Branch',type:'Late notice',count:1,live:1,incidentDate:dateIn(-95),note:'',by:'Rosa Delgado',state:'Active',expires:dateIn(270),shared:dateIn(-94),sharedHow:'Email',shareBy:dateIn(-93),disputeBy:dateIn(-88),disputed:'',disputeResult:''}],res:[],rev:{},pto:{}}; save(); } return d; }
+function ptoOf(d,n){ var c=d.sk.pto[n]||{eligible:'Yes',allowance:40,prior:0}, y=new Date().getFullYear(), u=0, sc=0, pe=0, t=dateIn(0); d.to.forEach(function(r){ if(r.name!==n||r.pay!=='Paid') return; var h=+r.hours||0; if(r.status==='Pending') pe+=h; else if(r.status==='Approved'){ if(r.start>t) sc+=h; else u+=h; } }); var al=+c.allowance||0, pr=+c.prior||0; return {year:y,eligible:c.eligible==='Yes',allowance:al,prior:pr,used:u,scheduled:sc,pending:pe,left:Math.max(0,al-pr-u-sc-pe)}; }
+function skP(d,p){ var l=d.sk.inc.filter(function(i){return i.employee===p.name&&i.count;}), a=l.filter(function(i){return i.state==='Active';}), act=a.reduce(function(s,i){return s+i.live;},0), last=l.reduce(function(m,i){return i.incidentDate>m?i.incidentDate:m;},''), on=last?addD(last,90):'';
+ return {name:p.name,branch:p.branch,email:p.email,active:act,resets12:d.sk.res.filter(function(r){return r.employee===p.name;}).length,removeOn:act?on:'',removable:!!(act&&on<=dateIn(0)),hasPin:false,pto:ptoOf(d,p.name)}; }
+function skV(){ var d=sk(), team=d.people.map(function(p){return skP(d,p);}), t=dateIn(0), todo=[];
+ d.to.forEach(function(r){ if(+r.notice<3&&!d.sk.rev[r.id]) todo.push({k:'review',r:r}); });
+ d.sk.inc.forEach(function(i){ if(i.count&&!i.shared&&i.state==='Active') todo.push({k:'share',i:i,late:i.shareBy<t}); if(i.disputed&&!i.disputeResult) todo.push({k:'dispute',i:i}); });
+ d.sk.res.forEach(function(r){ if(!r.donuts||!r.meeting||(r.pip&&!r.pipDone)) todo.push({k:'reset',r:r,late:r.meetingDue<t}); });
+ team.forEach(function(p){ if(p.removable) todo.push({k:'clean',p:p}); });
+ return {today:t,exc:['Family emergency','Illness','Legally protected leave','Manager approved in advance'],team:team,incidents:d.sk.inc.slice().reverse(),resets:d.sk.res,todo:todo}; }
+function myV(n){ var d=sk(), p=d.people.filter(function(x){return x.name===n;})[0]||{name:n}, s=skP(d,p); return {name:n,today:dateIn(0),active:s.active,removeOn:s.removeOn,removable:s.removable,strikes:d.sk.inc.filter(function(i){return i.employee===n&&i.count;}).reverse(),resets:d.sk.res.filter(function(r){return r.employee===n;}),pto:s.pto,requests:d.to.filter(function(r){return r.name===n;}),mustChange:false}; }
+function fi(d,id){ return d.sk.inc.filter(function(i){return i.incident===id;})[0]; }
 var F={
  getDirectory:function(){ return {people:db().people,sheetUrl:''}; },
  eqList:eq,
@@ -145,6 +161,21 @@ var F={
  adminAddTech:function(br,p,n){ pin(p); var d=db(); if(d.T.indexOf(n)<0) d.T.push(n); save(); return shop(br); },
  adminRemoveTech:function(br,p,n){ pin(p); var d=db(); d.T=d.T.filter(function(x){return x!==n;}); save(); return shop(br); },
  adminSettings:function(br,p,em){ pin(p); var d=db(); if(em!=null) d.email=em; save(); return shop(br); },
+ myData:function(n,p){ pin(p); return myV(n); },
+ myPin:function(n){ return myV(n); },
+ myRequestDelete:function(n,p,id){ var d=sk(); d.to=d.to.filter(function(r){return r.id!==id;}); save(); return myV(n); },
+ toDelete:function(p,id){ pin(p); var d=hr(); d.to=d.to.filter(function(r){return r.id!==id;}); save(); return d.to; },
+ strikeData:function(p){ pin(p); return skV(); },
+ strikeIssue:function(p,x){ pin(p); var d=sk(), c=/^No-call/.test(x.type)?2:1, t=dateIn(0); d.sk.inc.push({incident:'I'+Date.now().toString(36),employee:x.employee,branch:x.branch,type:x.type,count:c,live:c,incidentDate:x.incidentDate,note:x.note,by:x.by,state:'Active',expires:addD(x.incidentDate,365),shared:'',sharedHow:'',shareBy:addD(t,2),disputeBy:'',disputed:'',disputeResult:''}); if(x.requestId) d.sk.rev[x.requestId]=1;
+  var a=d.sk.inc.filter(function(i){return i.employee===x.employee&&i.state==='Active';}); if(a.reduce(function(s,i){return s+i.live;},0)>=3){ a.forEach(function(i){ i.state='Reset'; }); d.sk.res.push({id:'Z'+Date.now().toString(36),employee:x.employee,reached:t,meetingDue:addD(t,14),donuts:'',meeting:'',pip:d.sk.res.some(function(r){return r.employee===x.employee;}),pipDone:''}); } save(); return skV(); },
+ strikeNoStrike:function(p,x){ pin(p); var d=sk(); d.sk.rev[x.requestId]=1; d.sk.inc.push({incident:'I'+Date.now().toString(36),employee:x.employee,branch:x.branch,type:'No strike: '+x.reason,count:0,live:0,incidentDate:x.incidentDate,note:x.note,by:x.by,state:'No strike'}); save(); return skV(); },
+ strikeShare:function(p,id,how){ pin(p); var d=sk(), i=fi(d,id); i.shared=dateIn(0); i.sharedHow=how; i.disputeBy=dateIn(5); save(); return skV(); },
+ strikeDispute:function(p,id){ pin(p); var d=sk(); fi(d,id).disputed=dateIn(0); save(); return skV(); },
+ strikeDecide:function(p,id,r,o){ pin(p); var d=sk(), i=fi(d,id); if(o&&o.mistake){ i.state='Overturned'; i.live=0; } else { i.disputeResult=r; if(r==='Overturned'){ i.state='Overturned'; i.live=0; } } save(); return skV(); },
+ strikeRemove:function(p,n){ pin(p); var d=sk(), a=d.sk.inc.filter(function(i){return i.employee===n&&i.state==='Active'&&i.live>0;}).sort(function(x,y){return x.incidentDate<y.incidentDate?-1:1;})[0]; if(a){ a.live--; if(!a.live) a.state='Removed'; } save(); return skV(); },
+ strikeSetPin:function(p){ pin(p); return skV(); },
+ strikePto:function(p,n,o){ pin(p); var d=sk(); d.sk.pto[n]={eligible:o.eligible,allowance:+o.allowance||0,prior:+o.prior||0}; save(); return skV(); },
+ strikeMark:function(p,id,f){ pin(p); var d=sk(), r=d.sk.res.filter(function(x){return x.id===id;})[0]; r[f]=dateIn(0); save(); return skV(); },
  mgmtUnlock:function(p){ pin(p); return true; },
  obList:function(){ var d=hr(); return {plan:OB_PLAN,signoff:OB_SIGN,hires:d.ob}; },
  obStart:function(x){ var d=hr(), id='H'+Date.now().toString(36); d.ob.push({id:id,tech:x.tech,branch:x.branch,start:x.start,supervisor:x.supervisor,status:'In progress',signed:'',file:'',checks:{}}); save(); return id; },
@@ -374,7 +405,7 @@ function noticeBox(){var s=S.form.start;if(!s)return '';var n=Math.round((dt(s)-
   if(n<3)return '<div class="warnbox"><b>Under 3 days\' notice.</b> This may count as a strike unless an exception applies, like illness or an emergency. Tell your manager the reason.</div>';
   return '<div class="okbox">'+n+' days\' notice. Remember the request must reach your manager at least 72 hours before your shift starts.</div>';}
 function reqView(){var h=head('Request time off');
-  if(S.done){h+='<section class="card done"><h2>Request sent</h2><p>Management has your request for '+esc(S.done.span)+'. You\'ll see the answer below and get an email at '+esc(S.email)+'.</p>'+(S.done.late?'<div class="warnbox">This was under 3 days\' notice, so it may count as a strike unless an exception applies.</div>':'')+'<button class="btn" data-a="again">Make another request</button></section>';}
+  if(S.done){h+='<section class="card done"><h2>Request sent</h2><p>Management has your request for '+esc(S.done.span)+'. You\'ll get an email at '+esc(S.email)+' with the answer, and you can check it in My Dashboard.</p>'+(S.done.late?'<div class="warnbox">This was under 3 days\' notice, so it may count as a strike unless an exception applies.</div>':'')+'<button class="btn" data-a="again">Make another request</button></section>';}
   else if(S.loading){h+='<p class="muted">Loading…</p>';}
   else{var f=S.form,min=today();
   h+='<form class="card form" id="rf"><h2>New request</h2>'+
@@ -386,7 +417,7 @@ function reqView(){var h=head('Request time off');
    (S.err?'<p class="err">'+esc(S.err)+'</p>':'')+
    '<button class="btn primary" '+(S.busy?'disabled':'')+'>'+(S.busy?'Sending…':'Send request')+'</button>'+
    '<p class="muted small">Don\'t include medical details. <a href="../policies/index.html#p3">Read the Time Off policy</a></p></form>';}
-  if(S.mine.length){h+='<h2 class="lib">Your requests</h2><div class="list">'+S.mine.map(function(r){return '<div class="card req"><div class="row"><b>'+esc(span(r))+'</b>'+pill(r.status)+'</div><span class="meta">'+esc(hrs(r.hours))+' · '+esc(r.pay)+'</span></div>';}).join('')+'</div>';}
+  h+='<p class="muted small">See your requests and strikes in <a href="../me/index.html">My Dashboard</a>.</p>';
   return h;}
 function counts(){var c={pending:0,block:0,approved:0,denied:0,all:0},t=today();(S.list||[]).forEach(function(r){c.all++;if(r.status==='Pending')c.pending++;if(r.status==='Approved'){c.approved++;if(!r.blocked&&r.end>=t)c.block++;}if(r.status==='Denied')c.denied++;});return c;}
 function match(r){var f=S.f;if(f==='all')return true;if(f==='pending')return r.status==='Pending';if(f==='block')return r.status==='Approved'&&!r.blocked&&r.end>=today();if(f==='approved')return r.status==='Approved';return r.status==='Denied';}
@@ -408,7 +439,7 @@ function trackView(){var h=head('Approve and track requests');
   h+='<p class="muted small"><button class="link" data-a="lock">Lock</button></p>';
   return h;}
 function render(){var y=window.scrollY;app.innerHTML=MODE==='req'?reqView():trackView();window.scrollTo(0,y);}
-function loadMine(){if(!S.name)return;api('toMine',[S.name]).then(function(l){S.mine=l;render();}).catch(function(){});}
+function loadMine(){}
 function grab(){var g=function(i){var e=document.getElementById(i);return e?e.value:'';};S.form={start:g('st'),end:g('en'),hours:g('hr'),pay:g('py')};S.email=g('em').trim();var n=g('nm');if(n!==S.name){S.name=n;S.mine=[];if(n){ls('to.name',n);loadMine();}else ls('to.name',null);}}
 function act(fn,args){S.busy=true;S.err='';render();api(fn,args).then(function(l){S.list=l;S.busy=false;render();}).catch(function(x){S.busy=false;S.err=String(x.message||x);render();});}
 app.addEventListener('change',function(e){if(MODE==='req'&&e.target.closest('#rf')){var had=S.form.start;grab();if(e.target.id==='st'){if(S.form.start&&(!S.form.end||S.form.end<S.form.start))S.form.end=S.form.start;render();}}
