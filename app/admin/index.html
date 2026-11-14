@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en" data-root="../../">
+<head><style>#tsbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:space-between;padding:8px max(14px,env(safe-area-inset-left,0px));background:#046725;color:#fff;font:500 13px/1.3 system-ui,sans-serif}
+#tsbar a{color:#fff;font-weight:700;text-decoration:underline}
+#tsbar button{font:inherit;font-weight:700;color:#046725;background:#fff;border:0;border-radius:6px;padding:5px 10px;cursor:pointer}
+#pinIn::placeholder{color:#8a948d;opacity:1;font-size:1rem;letter-spacing:0;font-weight:500}
+</style><script>/* PestHub demo: all data is sample data held in this browser. Nothing leaves the device. */
+(function(){
+var KEY='ph_demo_v1', PIN='1234', mem=null;
+var realFetch=window.fetch.bind(window);
+window.confirm=function(){return true;};
+function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){ return null; } }
+var HR=3600000, DAY=86400000;
+function dateIn(days){ var d=new Date(Date.now()+days*DAY); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function seed(){
+ var now=Date.now();
+ var T=['Marcus Hale','Dana Whitfield','Luis Ortega','Priya Nair','Cody Brandt','Jenna Sloan'];
+ function pr(id,name,category,qty,reorderAt,unit){ return {id:id,name:name,category:category,qty:qty,reorderAt:reorderAt,unit:unit}; }
+ function stock(m){ return [
+  pr('p1','Bifen I/T','Liquids',Math.round(9*m),4,'gal'),pr('p2','Cyzmic CS','Liquids',Math.round(3*m),3,'qt'),pr('p3','Taurus SC','Liquids',Math.round(7*m),2,'bottle'),
+  pr('p4','Delta Dust','Dusts',Math.round(11*m),5,'lb'),pr('p5','CimeXa Dust','Dusts',Math.round(2*m),3,'can'),pr('p6','Advion Ant Gel','Baits',Math.round(14*m),6,'tube'),
+  pr('p7','Bait station, tamper-resistant','Rodent',Math.round(36*m),12,'each'),pr('p8','Rodent bait blocks','Rodent',Math.round(4*m),2,'pail'),pr('p9','Snap traps','Rodent',Math.round(48*m),20,'each'),
+  pr('p10','Exclusion mesh','Wildlife',Math.round(6*m),3,'roll'),pr('p11','One-way bat valves','Wildlife',0,4,'each'),pr('p12','Trap bait, sweet','Wildlife',Math.round(5*m),2,'jar'),
+  pr('p13','Nitrile gloves','Safety',Math.round(9*m),4,'box'),pr('p14','Respirator cartridges','Safety',Math.round(6*m),4,'pair')]; }
+ var items=[
+  {id:'e1',name:'Cage trap, medium',total:14,out:[{id:'h1',tech:T[0],qty:3,since:now-2*DAY,note:'418 Sample Ln, skunk'},{id:'h2',tech:T[2],qty:2,since:now-9*DAY,note:'77 Birch Ct, raccoon'}]},
+  {id:'e2',name:'Cage trap, small',total:20,out:[{id:'h3',tech:T[1],qty:4,since:now-30*HR,note:'1203 Orchard Rd, squirrels'}]},
+  {id:'e3',name:'Cellular trail camera',total:8,out:[{id:'h4',tech:T[0],qty:1,since:now-2*DAY,note:'418 Sample Ln'}]},
+  {id:'e4',name:'Burrow gas applicator',total:2,out:[]},{id:'e5',name:'40 ft extension ladder',total:3,out:[{id:'h5',tech:T[4],qty:1,since:now-4*HR,note:'Soffit exclusion'}]},
+  {id:'e6',name:'Drill and rod termite kit',total:2,out:[]},{id:'e7',name:'Backpack mister',total:5,out:[]}];
+ var active=[
+  {id:'T1',branch:'North Branch',tech:T[0],itemId:'e1',item:'Cage trap, medium',qty:3,address:'418 Sample Ln',lat:null,lng:null,target:'Skunk',job:'20418',notes:'Under back deck, left side',setAt:now-50*HR,every:24,lastCheck:now-27*HR,nextDue:now-3*HR,status:'Active',catches:1},
+  {id:'T2',branch:'South Branch',tech:T[2],itemId:'e1',item:'Cage trap, medium',qty:2,address:'77 Birch Ct',lat:null,lng:null,target:'Raccoon',job:'20377',notes:'Attic access by garage',setAt:now-30*HR,every:24,lastCheck:now-21*HR,nextDue:now+3*HR,status:'Active',catches:0},
+  {id:'T3',branch:'North Branch',tech:T[1],itemId:'e2',item:'Cage trap, small',qty:4,address:'1203 Orchard Rd',lat:null,lng:null,target:'Squirrel',job:'20455',notes:'',setAt:now-20*HR,every:24,lastCheck:now-6*HR,nextDue:now+18*HR,status:'Active',catches:2}];
+ var log=[{when:now-6*HR,tech:T[1],action:'Caught',animal:'Squirrel',count:2,address:'1203 Orchard Rd',notes:'Relocated per state rules'},{when:now-21*HR,tech:T[2],action:'Empty',address:'77 Birch Ct',notes:''},{when:now-27*HR,tech:T[0],action:'Caught',animal:'Skunk',count:1,address:'418 Sample Ln',notes:'Trap reset'}];
+ var prices=[
+  ['General pest','General Pest Plan','Quarterly, one-story home up to 2,500 sq ft','$129 per visit\n$199 initial','$109 per visit'],
+  ['General pest','German cockroach cleanout','Initial plus 4 follow-ups. Inspect first.','$649','$549'],
+  ['General pest','Wasp nest removal','Single visit, ground access','$149','$119'],
+  ['Rodents','Mouse program','Inspection, minor exclusion, stations','$349','$299'],
+  ['Rodents','Additional bait station','','$35 each','$30 each'],
+  ['Wildlife','Live trapping','Per week, not per animal','$525 per week','$475 per week'],
+  ['Wildlife','Bat exclusion','Quote after inspection. Observe blackout dates.','From $1,200','$950'],
+  ['Wildlife','Snake removal','Can rise with drive distance','$325 one time\n$525 for 7 days','$295'],
+  ['Termites','Drill and rod treatment','3-year warranty','Quote per linear foot','$11 per ft'],
+  ['Termites','Warranty extension','Up to 5 years total','$225 per year','$225 per year'],
+  ['Lawn','Weed and feed','Six applications per season','$59 per application','$49 per application']
+ ].map(function(r){ return {section:r[0],service:r[1],note:r[2],standard:r[3],floor:r[4]}; });
+ var lic=[
+  ['L1',T[0],'North Branch','TX','TX-448201',38],['L2',T[0],'North Branch','OK','OK-90217',410],['L3',T[1],'North Branch','TX','TX-512877',12],
+  ['L4',T[2],'South Branch','TX','TX-330914',-6],['L5',T[3],'South Branch','LA','LA-77120',205],['L6',T[4],'East Branch','OK','OK-88342',96],['L7',T[5],'East Branch','OK','OK-60155',301]
+ ].map(function(r){ return {id:r[0],tech:r[1],branch:r[2],state:r[3],type:'Commercial Applicator',number:r[4],expires:dateIn(r[5]),email:'',notes:''}; });
+ var people=[
+  ['Avery Lindqvist','Owner','All branches','Leadership','(555) 555-0100','avery@samplepest.example'],['Rosa Delgado','Operations Manager','All branches','Leadership','(555) 555-0101','rosa@samplepest.example'],
+  [T[0],'Service Technician','North Branch','Service Technicians','(555) 555-0110','marcus@samplepest.example'],[T[1],'Service Technician','North Branch','Service Technicians','(555) 555-0111',''],[T[2],'Wildlife Technician','South Branch','Service Technicians','(555) 555-0112',''],
+  [T[3],'Service Technician','South Branch','Service Technicians','(555) 555-0113',''],[T[4],'Wildlife Technician','East Branch','Service Technicians','(555) 555-0114',''],[T[5],'Service Technician','East Branch','Service Technicians','(555) 555-0115',''],
+  ['Nora Beck','Customer Service','North Branch','Office','(555) 555-0120','office@samplepest.example'],['Theo Marsh','Sales Lead','All branches','Outbound Sales','(555) 555-0130','']
+ ].map(function(p){ return {name:p[0],role:p[1],branch:p[2],section:p[3],phone:p[4],email:p[5],notes:''}; });
+ return {T:T,stock:{IF:stock(1),WY:stock(.7),BZ:stock(.5)},shopLog:[{when:now-5*HR,who:T[0],action:'Checked out',product:'Bifen I/T',qty:1,unit:'gal'},{when:now-28*HR,who:T[1],action:'Checked out',product:'Snap traps',qty:12,unit:'each'},{when:now-52*HR,who:T[3],action:'Returned',product:'Delta Dust',qty:1,unit:'lb'}],
+  items:items,eqLog:[{when:now-2*DAY,who:T[0],action:'Checked out',qty:3,item:'Cage trap, medium',note:'418 Sample Ln'}],active:active,trapLog:log,prices:prices,updated:new Date().toLocaleDateString(),lic:lic,licEmail:'manager@samplepest.example',licDays:'60,30,14,7,0',people:people,email:'manager@samplepest.example'};
+}
+function db(){ if(mem) return mem; try{ var r=ls(KEY); if(r) mem=JSON.parse(r); }catch(e){} if(!mem){ mem=seed(); save(); } return mem; }
+function save(){ ls(KEY,JSON.stringify(mem)); }
+function pin(p){ if(String(p)!==PIN) throw new Error('Wrong PIN. The demo PIN is 1234.'); }
+function eq(){ var d=db(); return {items:d.items,techs:d.T}; }
+function eqA(){ var d=db(); return {items:d.items,techs:d.T,log:d.eqLog.slice(0,40)}; }
+function find(a,id){ return a.filter(function(x){return x.id===id;})[0]; }
+function trapL(){ var d=db(); return {active:d.active,items:d.items,techs:d.T,log:d.trapLog}; }
+function licD(){ var d=db(); return {rows:d.lic.map(function(r){ var x=Object.assign({},r), p=r.expires.split('-'), e=new Date(+p[0],p[1]-1,+p[2]), n=new Date(); n.setHours(0,0,0,0); x.days=Math.round((e-n)/DAY); return x; }),techs:d.T.map(function(t){ var p=d.people.filter(function(q){return q.name===t;})[0]; return {name:t,branch:p?p.branch:''}; }),email:d.licEmail,days:d.licDays,sheetUrl:''}; }
+function pric(){ var d=db(); return {rows:d.prices,updated:d.updated,footer:'Sample prices for this demo. Each company enters its own.'}; }
+function shop(br){ var d=db(); return {products:d.stock[br]||[],techs:d.T,log:d.shopLog.slice(0,60),email:d.email,sheetUrl:''}; }
+function cpw(p){ if(String(p)!==PIN) throw new Error('Wrong password. The demo password is 1234.'); }
+function comm(){ var d=db(); if(!d.comm){ var ago=function(n){ return dateIn(-n); };
+ d.comm={theo:{name:'Theo Marsh',current:[{date:ago(2),svc:'Exclusion',cust:'Sample customer A',amt:1850,cur:185},{date:ago(5),svc:'General Pest Plan',cust:'Sample customer B',amt:596,cur:59.6},{date:ago(8),svc:'Live trapping',cust:'Sample customer C',amt:1050,cur:105}],past:[{date:ago(21),svc:'Termite treatment',cust:'Sample customer D',amt:2400,paid:240},{date:ago(30),svc:'Bat exclusion',cust:'Sample customer E',amt:3200,paid:320}]},
+ dana:{name:'Dana Whitfield',current:[{date:ago(3),svc:'Mouse program',cust:'Sample customer F',amt:349,cur:34.9}],past:[{date:ago(25),svc:'General Pest Plan',cust:'Sample customer G',amt:596,paid:59.6}]}}; save(); } return d.comm; }
+function commView(w){ var c=comm()[w], ps=0, pc=0, ys=0, yc=0; c.current.forEach(function(r){ ps+=r.amt; pc+=r.cur; }); ys=ps; yc=pc; c.past.forEach(function(r){ ys+=r.amt; yc+=r.paid; }); ys+=18400; yc+=1840;
+ return {name:c.name,totals:{periodSales:ps,periodComm:pc,ytdSales:ys,ytdComm:yc},current:c.current,past:c.past}; }
+function kpiSeed(){ var ws=[], t=new Date(); t.setHours(12,0,0,0); t.setDate(t.getDate()-((t.getDay()+1)%7)); for(var i=5;i>=0;i--){ var e=new Date(t.getTime()-i*7*DAY); ws.push(e.getFullYear()+'-'+String(e.getMonth()+1).padStart(2,'0')+'-'+String(e.getDate()).padStart(2,'0')); }
+ function ser(l,v,u){ var p={}; ws.forEach(function(w,i){ p[w]=v[i]; }); var s={label:l,pts:p}; if(u) s.unit=u; return s; }
+ var y=new Date().getFullYear(), mo=new Date().getMonth(), M=['January','February','March','April','May','June','July','August','September','October','November','December'], A=[21,19,26,38,52,61,66,63,49,41,28,22], B=[23,22,29,42,57,66,71,69,55,46,31,25];
+ return {weeks:ws,updated:new Date().toISOString(),groups:[
+  {name:'Vehicle Revenue',series:[ser('Truck 1',[4820,5110,4690,5340,5025,5480]),ser('Truck 2',[3960,4210,4375,4120,4480,4655]),ser('Truck 3',[3120,2980,3345,3510,3290,3625]),ser('Wildlife truck',[2640,3180,2875,3420,3760,3390])]},
+  {name:'Office',series:[ser('New sales revenue',[6200,7450,5980,8120,7640,8930]),ser('New customers',[14,17,13,19,18,21]),ser('Cancellations',[3,2,4,2,3,1]),ser('Reschedules',[9,7,11,6,8,5])]},
+  {name:'Tech Time on Job',series:[ser('Marcus Hale',[22.5,23.1,21.8,24,22.9,23.4],'time'),ser('Dana Whitfield',[19.4,18.8,20.1,19.7,18.9,19.6],'time'),ser('Luis Ortega',[15.8,14.9,15.2,14.6,14.2,13.8],'time'),ser('Priya Nair',[20.6,21.2,20.4,21.9,22.1,21.5],'time')]},
+  {name:'Tech Reservices',series:[ser('Marcus Hale',[2.8,2.4,3.1,2.2,2.6,2.1],'%'),ser('Dana Whitfield',[3.6,3.2,2.9,3.4,3.1,2.8],'%'),ser('Luis Ortega',[6.4,5.9,6.8,6.1,5.7,6.3],'%'),ser('Priya Nair',[2.9,3.3,2.7,2.5,2.8,2.4],'%')]}],
+  years:{a:String(y-1),b:String(y),rows:M.map(function(m,i){ return {month:m,a:A[i]*1000,b:i<=mo?B[i]*1000:null}; })}}; }
+var MANUAL={docs:[
+ {title:'CSR Quick-Start Guide',part:'part1',blocks:[{t:'title',x:'CSR Quick-Start Guide'},{t:'muted',x:'Sample document. Each company loads its own manual here.'},
+  {t:'h2',x:'Chapter 1: Answering the phone'},{t:'p',x:'Answer within three rings. Give the company name and your name, then ask how you can help.'},{t:'quote',x:'Thanks for calling Sample Pest Co., this is Nora. How can I help you today?'},
+  {t:'h2',x:'Chapter 2: Booking the job'},{t:'ol',items:['Identify the problem — Ask what they are seeing and where.','Confirm the address — Check that it is in the service area.','Offer a time — Give two options, not an open question.','Set expectations — Explain what the tech will do and how to prepare.']},
+  {t:'h2',x:'Chapter 3: End of day'},{t:'check',items:['All voicemails returned','Tomorrow’s route confirmed','Open quotes followed up']}]},
+ {title:'Customer Service SOP',sub:'Pricing and common questions',blocks:[{t:'title',x:'Customer Service SOP'},{t:'h2',x:'Pricing questions'},{t:'table',head:['Service','Starting price'],rows:[['General Pest Plan','$129 per visit'],['Wasp nest removal','$149'],['Live trapping','$525 per week']]},
+  {t:'h2',x:'Common questions'},{t:'qa',q:'Is it safe for my pets?',a:'Follow what the product label says. The tech will explain any re-entry time before leaving. Never say a product is non-toxic.'},{t:'qa',q:'Why is it so expensive?',a:'Explain what the service includes, then offer the plan that fits their budget. Do not go below the floor price.'}]},
+ {title:'Retention Quick Reference Card',sub:'When a customer wants to cancel',blocks:[{t:'title',x:'Retention Quick Reference Card'},{t:'h2',x:'Save the customer'},{t:'ol',items:['Listen first — Let them finish before you respond.','Ask why — Price, results or no longer needed.','Offer a fix — A free re-service or a schedule change.','Respect the answer — If they still want to cancel, process it politely.']},{t:'warn',label:'Never',x:'Argue with a customer or make them ask twice.'}]},
+ {title:'Escalation Guide',sub:'Who to call and when',blocks:[{t:'title',x:'Escalation Guide'},{t:'h2',x:'Send it to a manager when'},{t:'ul',items:['A customer mentions a bite, exposure or injury','A customer mentions a lawyer or a review threat','A refund is requested']},{t:'note',label:'Bat exposure',x:'If someone may have touched a bat, or a bat was found in a room with a sleeping person, tell them to contact their doctor or local health department right away.'}]},
+ {title:'Welcome Call Script',sub:'New customer first call',blocks:[{t:'title',x:'Welcome Call Script'},{t:'h2',x:'The call'},{t:'quote',x:'Hi, this is Nora with Sample Pest Co. I’m calling to welcome you and make sure you have what you need before your first visit.'},{t:'check',items:['Confirm the date and time','Confirm gate codes and pets','Explain how to reach the office']}]},
+ {title:'Inside Sales Guide',sub:'Calling past customers',blocks:[{t:'title',x:'Inside Sales Guide'},{t:'h2',x:'Past customer calls'},{t:'quote',x:'Hi, it’s Theo with Sample Pest Co. We helped you last year and I wanted to see how things are holding up.'},{t:'p',x:'Ask about the original problem, then offer the seasonal plan.'}]}]};
+var SOPS={sops:[
+ {id:'skunk',cat:'Wildlife',title:'Live trapping: skunk',sub:'Sample SOP',blocks:[{t:'p',lead:'Sample only.',x:'Each company loads its own procedures. Follow state and local wildlife rules.'},{t:'h2',x:'Before you set'},{t:'check',items:['Confirm the animal with sign or a trail camera','Check local trapping and release rules','Explain the check schedule to the customer']},{t:'h2',x:'Setting the trap'},{t:'ol',items:['Place the trap on level ground along the travel path.','Stabilize it so it cannot tip.','Log the set in Trap Checks with the check interval.']},{t:'note',label:'Non-target animals',x:'Release non-target animals right away and log it.'}]},
+ {id:'rodent',cat:'Rodents',title:'Rodent inspection',sub:'Sample SOP',blocks:[{t:'h2',x:'Three questions to answer'},{t:'ul',items:['How many?','Where are they traveling?','How are they getting in?']},{t:'h2',x:'Walk the property'},{t:'check',items:['Foundation and utility penetrations','Garage door seals','Attic and crawl space access','Food and water sources']}]},
+ {id:'gpc',cat:'General pest',title:'Quarterly service visit',sub:'Sample SOP',blocks:[{t:'h2',x:'At the home'},{t:'ol',items:['Talk to the customer about what they have seen.','Inspect the exterior and knock down webs.','Treat according to the product label.','Leave a service note.']},{t:'note',label:'Always',x:'The product label is the law. Check the rate before you mix.'}]},
+ {id:'cancel',cat:'Office',title:'Handling a cancellation',sub:'Sample SOP',blocks:[{t:'h2',x:'Steps'},{t:'ol',items:['Ask why they want to cancel.','Offer a re-service if the problem is results.','Record the reason and process the request.']}]}]};
+function hr(){ var d=db(); if(!d.ob){ var t0=Date.now();
+ d.ob=[{id:'H1',tech:'Sam Rivera',branch:'IF',start:dateIn(1),supervisor:'Marcus Hale',status:'In progress',signed:'',file:'',checks:{a1:{by:'Rosa Delgado',at:dateIn(-3)},a2:{by:'Rosa Delgado',at:dateIn(-3)},t_hb:{by:'Sam Rivera',at:dateIn(-2)}}},{id:'H2',tech:'Jenna Sloan',branch:'BZ',start:dateIn(-40),supervisor:'Cody Brandt',status:'Signed off',signed:'Sep 26, 2026 at 3:12 PM',file:'',checks:{}}];
+ d.sigs=[{name:'Marcus Hale',policy:'Driving Policy',version:'Jan 1, 2026',when:t0-9*DAY,url:''},{name:'Marcus Hale',policy:'Company Credit Card Policy',version:'Jan 1, 2026',when:t0-9*DAY,url:''},{name:'Marcus Hale',policy:'Employee Handbook',version:'Sample Edition',when:t0-9*DAY,url:''},{name:'Marcus Hale',policy:'Time Off Policy',version:'Jan 1, 2026',when:t0-9*DAY,url:''},{name:'Dana Whitfield',policy:'Employee Handbook',version:'Sample Edition',when:t0-6*DAY,url:''},{name:'Dana Whitfield',policy:'Driving Policy',version:'Jan 1, 2026',when:t0-6*DAY,url:''},{name:'Luis Ortega',policy:'Driving Policy',version:'Dec 1, 2025',when:t0-120*DAY,url:''}];
+ d.to=[{id:'R1',name:'Luis Ortega',branch:'South Branch',start:dateIn(9),end:dateIn(10),hours:16,pay:'Paid',status:'Pending',by:'',reason:'',notice:9,blocked:false},{id:'R2',name:'Priya Nair',branch:'South Branch',start:dateIn(2),end:dateIn(2),hours:8,pay:'Unpaid',status:'Pending',by:'',reason:'',notice:2,blocked:false},{id:'R3',name:'Cody Brandt',branch:'East Branch',start:dateIn(14),end:dateIn(18),hours:40,pay:'Paid',status:'Approved',by:'Rosa Delgado',reason:'',notice:21,blocked:false}];
+ save(); } return d; }
+var OB_PLAN=[{phase:'Before Day 1',group:'Paperwork',items:[['a1','Offer letter signed'],['a2','Tax and payroll forms complete'],['a3','Applicator license study guide sent']]},{phase:'Before Day 1',group:'Required documents',items:[['t_hb','Employee Handbook signed'],['t_drive','Driving Policy signed'],['t_card','Company Credit Card Policy signed']]},{phase:'Day 1',group:'Morning review',items:[['b1','Tour the shop and product storage'],['b2','Review label and PPE basics'],['b3','Install the app and find the SOPs']]},{phase:'Day 1',group:'Afternoon ride-along',items:[['b4','Shadow service visits with the supervisor']]},{phase:'Day 2',group:'Half day ride-along',items:[['c1','Tech completes visits with the supervisor watching'],['c2','Supervisor reviews notes and customer conversations']]}];
+var OB_SIGN=[['d1','Can mix and apply products according to the label'],['d2','Can complete a service note correctly'],['d3','Knows who to call for spills, injuries or exposures']];
+function addD(s,n){ var p=String(s).split('-'), x=new Date(+p[0],p[1]-1,+p[2]+n); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
+function sk(){ var d=hr(); if(!d.sk){ d.sk={inc:[
+ {incident:'I1',employee:'Luis Ortega',branch:'South Branch',type:'Late notice',count:1,live:1,incidentDate:dateIn(-20),note:'',by:'Rosa Delgado',state:'Active',expires:dateIn(345),shared:dateIn(-19),sharedHow:'In person',shareBy:dateIn(-18),disputeBy:dateIn(-14),disputed:'',disputeResult:''},
+ {incident:'I2',employee:'Cody Brandt',branch:'East Branch',type:'No-call/no-show',count:2,live:2,incidentDate:dateIn(-1),note:'',by:'Rosa Delgado',state:'Active',expires:dateIn(364),shared:'',sharedHow:'',shareBy:dateIn(1),disputeBy:'',disputed:'',disputeResult:''},
+ {incident:'I3',employee:'Dana Whitfield',branch:'North Branch',type:'Late notice',count:1,live:1,incidentDate:dateIn(-95),note:'',by:'Rosa Delgado',state:'Active',expires:dateIn(270),shared:dateIn(-94),sharedHow:'Email',shareBy:dateIn(-93),disputeBy:dateIn(-88),disputed:'',disputeResult:''}],res:[],rev:{},pto:{}}; save(); } return d; }
+function ptoOf(d,n){ var c=d.sk.pto[n]||{eligible:'Yes',allowance:40,prior:0}, y=new Date().getFullYear(), u=0, sc=0, pe=0, t=dateIn(0); d.to.forEach(function(r){ if(r.name!==n||r.pay!=='Paid') return; var h=+r.hours||0; if(r.status==='Pending') pe+=h; else if(r.status==='Approved'){ if(r.start>t) sc+=h; else u+=h; } }); var al=+c.allowance||0, pr=+c.prior||0; return {year:y,eligible:c.eligible==='Yes',allowance:al,prior:pr,used:u,scheduled:sc,pending:pe,left:Math.max(0,al-pr-u-sc-pe)}; }
+function skP(d,p){ var l=d.sk.inc.filter(function(i){return i.employee===p.name&&i.count;}), a=l.filter(function(i){return i.state==='Active';}), act=a.reduce(function(s,i){return s+i.live;},0), last=l.reduce(function(m,i){return i.incidentDate>m?i.incidentDate:m;},''), on=last?addD(last,90):'';
+ return {name:p.name,branch:p.branch,email:p.email,active:act,resets12:d.sk.res.filter(function(r){return r.employee===p.name;}).length,removeOn:act?on:'',removable:!!(act&&on<=dateIn(0)),hasPin:true,start:(starts().starts[p.name]||''),reviewDone:(d.rev80&&d.rev80[p.name])||'',pto:ptoOf(d,p.name)}; }
+function skV(){ var d=sk(), team=d.people.map(function(p){return skP(d,p);}), t=dateIn(0), todo=[];
+ d.to.forEach(function(r){ if(+r.notice<3&&!d.sk.rev[r.id]) todo.push({k:'review',r:r}); });
+ d.sk.inc.forEach(function(i){ if(i.count&&!i.shared&&i.state==='Active') todo.push({k:'share',i:i,late:i.shareBy<t}); if(i.disputed&&!i.disputeResult) todo.push({k:'dispute',i:i}); });
+ d.sk.res.forEach(function(r){ if(!r.donuts||!r.meeting||(r.pip&&!r.pipDone)) todo.push({k:'reset',r:r,late:r.meetingDue<t}); });
+ team.forEach(function(p){ if(p.removable) todo.push({k:'clean',p:p}); });
+ var R=cfg().rules; team.forEach(function(p){ if(!p.start||p.reviewDone) return; var due=addD(p.start,+R.reviewDays||80), days=Math.round((new Date(due+'T12:00:00')-new Date(t+'T12:00:00'))/DAY); if(days<=(+R.reviewAhead||7)) todo.push({k:'hire80',name:p.name,branch:p.branch,start:p.start,due:due,days:days,late:days<0}); });
+ return {today:t,rules:R,exc:R.exceptions,starts:{total:team.length,entered:team.filter(function(p){return p.start;}).length,bad:[],url:''},team:team,incidents:d.sk.inc.slice().reverse(),resets:d.sk.res,todo:todo}; }
+function myV(n){ var d=sk(), p=d.people.filter(function(x){return x.name===n;})[0]||{name:n}, s=skP(d,p); return {name:n,today:dateIn(0),active:s.active,removeOn:s.removeOn,removable:s.removable,strikes:d.sk.inc.filter(function(i){return i.employee===n&&i.count;}).reverse(),resets:d.sk.res.filter(function(r){return r.employee===n;}),pto:s.pto,requests:d.to.filter(function(r){return r.name===n;}),mustChange:false,startDate:(starts().starts[n]||''),rules:cfg().rules}; }
+function fi(d,id){ return d.sk.inc.filter(function(i){return i.incident===id;})[0]; }
+/* Admin settings, start dates and vehicles (sample data). */
+var RULES0={reviewDays:80,reviewAhead:7,unlockMin:30,ptoHours:40,noticeDays:3,ncnsStrikes:2,resetAt:3,expireMonths:12,cleanDays:90,disputeDays:5,shareDays:2,tempPin:'1234',exceptions:['Family emergency','Illness','Legally protected leave','Manager approved in advance']};
+function cfg(){ var d=db(); if(!d.cfg){ d.cfg={branches:{IF:'North Branch',WY:'South Branch',BZ:'East Branch'},rules:JSON.parse(JSON.stringify(RULES0)),docs:{},tiles:{},tileOrder:{},map:{provider:'esri',dailyTiles:0},
+  emails:{timeOff:'',fieldRoutes:'',strikes:'',reviews:''},alerts:{IF:'',WY:'',BZ:''},comm:[{name:'Theo Marsh',file:''},{name:'Dana Whitfield',file:''}],log:[{when:Date.now()-3*DAY,who:'Rosa Delgado',what:'Rules saved',to:'Time off notice: 3 days'}]}; save(); }
+ if(!d.cfg.onboarding) d.cfg.onboarding={plan:OB_PLAN.map(function(g){ return {phase:g.phase,group:g.group,who:/Paperwork|Required/.test(g.group)?'owner':/review|ride-along/i.test(g.group)?'supervisor':'tech',items:g.items.map(function(i){return i.slice();})}; }),signoff:OB_SIGN.map(function(i){return i.slice();})};
+ return d.cfg; }
+function hubCfg(){ var c=cfg(); return {branches:c.branches,rules:c.rules,docs:c.docs,tiles:c.tiles,tileOrder:c.tileOrder,map:c.map}; }
+function starts(){ var d=db(); if(!d.starts){ d.starts={'Avery Lindqvist':dateIn(-3100),'Rosa Delgado':dateIn(-1460),'Marcus Hale':dateIn(-910),'Dana Whitfield':dateIn(-610),'Luis Ortega':dateIn(-420),'Priya Nair':dateIn(-75),'Cody Brandt':dateIn(-300),'Jenna Sloan':dateIn(-40),'Nora Beck':dateIn(-200),'Theo Marsh':dateIn(-505)}; d.rev80={}; Object.keys(d.starts).forEach(function(n){ if(d.starts[n]<dateIn(-80)) d.rev80[n]=addD(d.starts[n],78); }); save(); } return d; }
+function isMgr(p){ return p.manager!==undefined?!!p.manager:/leadership/i.test(p.section||''); }
+function adminV(){ var d=starts(), c=cfg(); return {people:d.people.map(function(p){ return {name:p.name,role:p.role,section:p.section,branch:p.branch,phone:p.phone,email:p.email,notes:p.notes||'',start:d.starts[p.name]||'',manager:isMgr(p),status:p.status||''}; }),
+ tiles:c.tiles,tileOrder:c.tileOrder,emails:c.emails,defaultEmail:'manager@samplepest.example',licenseEmail:d.licEmail,branches:c.branches,alerts:c.alerts,rules:c.rules,docs:c.docs,versions:{},onboarding:c.onboarding,comm:c.comm,map:c.map,hasMaster:true,log:c.log.slice(0,50)}; }
+function alog(by,what,to){ cfg().log.unshift({when:Date.now(),who:by||'Manager',what:what,to:to||''}); }
+function pdf64(title,lines){ var t=['BT /F1 20 Tf 60 740 Td ('+title+') Tj ET'].concat(lines.map(function(l,i){ return 'BT /F1 12 Tf 60 '+(700-i*20)+' Td ('+l+') Tj ET'; })).join('\n');
+ var o=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>','<< /Length '+t.length+' >>\nstream\n'+t+'\nendstream','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+ var s='%PDF-1.4\n', off=[]; o.forEach(function(x,i){ off.push(s.length); s+=(i+1)+' 0 obj\n'+x+'\nendobj\n'; }); var x=s.length; s+='xref\n0 '+(o.length+1)+'\n0000000000 65535 f \n'+off.map(function(n){ return String(n).padStart(10,'0')+' 00000 n \n'; }).join('')+'trailer\n<< /Size '+(o.length+1)+' /Root 1 0 R >>\nstartxref\n'+x+'\n%%EOF';
+ return btoa(s); }
+function veh(){ var d=db(); if(!d.veh){ var T=d.T, n=Date.now();
+  function h(id,type,days,mi,shop,cost,notes){ return {id:id,type:type,date:dateIn(-days),mileage:mi,shop:shop,cost:Number(cost),notes:notes,by:'Rosa Delgado'}; }
+  d.veh={email:'',days:'30,14,7,0',docs:{},list:[
+   {id:'V1',name:'Truck 1',year:2021,make:'Ford',model:'F-150',plate:'SPL 101',plateState:'TX',vin:'',branch:'North Branch',driver:T[0],mileage:61240,regExpires:dateIn(140),insCompany:'Sample Mutual',policy:'SM-55021',insExpires:dateIn(22),oilMiles:5000,oilMonths:6,notes:'',active:true,
+    history:[h('S1','oil_change',62,57900,'Quick Lube','89.95',''),h('S2','tires',120,55200,'Tire Center','742.18','Four new all-terrain tires')],docs:[{id:'D1',kind:'registration',at:n-40*DAY,by:'Rosa Delgado'},{id:'D2',kind:'insurance',at:n-40*DAY,by:'Rosa Delgado'}]},
+   {id:'V2',name:'Truck 2',year:2019,make:'Chevrolet',model:'Silverado 1500',plate:'SPL 102',plateState:'TX',vin:'',branch:'North Branch',driver:T[1],mileage:98410,regExpires:dateIn(-4),insCompany:'Sample Mutual',policy:'SM-55022',insExpires:dateIn(200),oilMiles:5000,oilMonths:6,notes:'Check engine light came on once in the spring.',active:true,
+    history:[h('S3','oil_change',150,92800,'Quick Lube','94.50',''),h('S4','repair',190,91200,'Main Street Auto','418.00','Replaced front brake pads and rotors')],docs:[{id:'D3',kind:'insurance',at:n-90*DAY,by:'Rosa Delgado'}]},
+   {id:'V3',name:'Wildlife truck',year:2022,make:'Toyota',model:'Tacoma',plate:'SPL 201',plateState:'OK',vin:'',branch:'South Branch',driver:T[2],mileage:38760,regExpires:dateIn(260),insCompany:'Sample Mutual',policy:'SM-55031',insExpires:dateIn(260),oilMiles:5000,oilMonths:6,notes:'Ladder rack and trap boxes.',active:true,
+    history:[h('S5','oil_change',35,36900,'Quick Lube','79.95','')],docs:[{id:'D4',kind:'registration',at:n-35*DAY,by:'Rosa Delgado'},{id:'D5',kind:'insurance',at:n-35*DAY,by:'Rosa Delgado'}]},
+   {id:'V4',name:'Van 1',year:2018,make:'Ford',model:'Transit Connect',plate:'SPL 301',plateState:'OK',vin:'',branch:'East Branch',driver:T[4],mileage:121300,regExpires:dateIn(75),insCompany:'Sample Mutual',policy:'SM-55041',insExpires:dateIn(75),oilMiles:5000,oilMonths:6,notes:'',active:true,
+    history:[h('S6','oil_change',100,116800,'Quick Lube','84.95',''),h('S7','inspection',100,116800,'State inspection station','25.50','Passed')],docs:[]}]}; save(); }
+ return d.veh; }
+function vehV(){ var v=veh(), c=cfg(); v.list.forEach(function(x){ x.history.sort(function(a,b){ return a.date<b.date?1:a.date>b.date?-1:0; }); });
+ return {today:dateIn(0),vehicles:v.list,branches:Object.keys(c.branches).map(function(k){return c.branches[k];}),people:db().people.map(function(p){return p.name;})}; }
+function vFind(id){ return veh().list.filter(function(x){return x.id===id;})[0]; }
+function vNum(x){ if(x===''||x==null) return null; var n=Number(String(x).replace(/[$,\s]/g,'')); return isNaN(n)?null:n; }
+
+var F={
+ getDirectory:function(){ return {people:db().people,sheetUrl:''}; },
+ eqList:eq,
+ eqOut:function(tech,item,qty,note,when,key){ var d=db(), it=find(d.items,item); it.out.push({id:'h'+key,tech:tech,qty:+qty,since:when,note:note}); d.eqLog.unshift({when:when,who:tech,action:'Checked out',qty:qty,item:it.name,note:note}); save(); return true; },
+ eqIn:function(hold,qty,note,when){ var d=db(); d.items.forEach(function(it){ it.out=it.out.filter(function(o){ if(o.id!==hold) return true; o.qty-=+qty; d.eqLog.unshift({when:when,who:o.tech,action:'Returned',qty:qty,item:it.name,note:note}); return o.qty>0; }); }); save(); return true; },
+ eqAdmin:function(p,action,x){ pin(p); var d=db();
+  if(action==='add') d.items.push({id:'e'+Date.now().toString(36),name:x.name,total:Math.max(0,+x.total||0),out:[]});
+  if(action==='update'){ var it=find(d.items,x.id); if(x.name) it.name=x.name; if(x.total!==undefined) it.total=x.total; }
+  if(action==='delete') d.items=d.items.filter(function(i){return i.id!==x.id;});
+  save(); return eqA(); },
+ trapList:trapL,
+ trapSet:function(tech,branch,itemId,qty,address,lat,lng,target,job,notes,every,when,key){ var d=db(), it=find(d.items,itemId);
+  var have=it.out.filter(function(o){return o.tech===tech;}).reduce(function(a,o){return a+o.qty;},0), set=d.active.filter(function(t){return t.itemId===itemId&&t.tech===tech;}).reduce(function(a,t){return a+t.qty;},0), need=+qty-Math.max(0,have-set);
+  if(need>0) it.out.push({id:'h'+key,tech:tech,qty:need,since:when,note:address});
+  d.active.push({id:'T'+key.slice(-10),branch:branch,tech:tech,itemId:itemId,item:it.name,qty:+qty,address:address||'Address not entered',lat:lat,lng:lng,target:target,job:job,notes:notes,setAt:when,every:+every,lastCheck:null,nextDue:when+every*HR,status:'Active',catches:0});
+  d.trapLog.unshift({when:when,tech:tech,action:'Set',address:address,notes:notes}); save(); return true; },
+ trapCheck:function(id,tech,result,animal,count,keep,notes,when){ var d=db(), t=find(d.active,id); if(!t) return true;
+  if(result==='Pulled'||(result==='Caught'&&!keep)) d.active=d.active.filter(function(x){return x!==t;});
+  else { t.lastCheck=when; t.nextDue=when+t.every*HR; if(result==='Caught') t.catches+=(+count||1); }
+  d.trapLog.unshift({when:when,tech:tech,action:result,animal:animal,count:count,address:t.address,notes:notes}); save(); return true; },
+ getPricing:pric,
+ pricingUnlock:function(p){ pin(p); return {sheetUrl:''}; },
+ pricingSave:function(p,rows){ pin(p); var d=db(); d.prices=rows; d.updated=new Date().toLocaleDateString(); save(); return pric(); },
+ licUnlock:function(){ return licD(); },
+ licSave:function(p,r){ var d=db(); if(r.id){ d.lic=d.lic.map(function(x){ return x.id===r.id?Object.assign({},x,r):x; }); } else { r.id='L'+Date.now().toString(36); d.lic.push(r); } save(); return licD(); },
+ licDelete:function(p,id){ var d=db(); d.lic=d.lic.filter(function(x){return x.id!==id;}); save(); return licD(); },
+ licSettings:function(p,email,days){ var d=db(); d.licEmail=email; d.licDays=days; save(); return licD(); },
+ licTest:function(p){ return {sent:0,note:'Demo only: no email was sent. The live version emails this reminder.'}; },
+ getKiosk:function(br){ return shop(br); },
+ checkout:function(br,tech,items,when){ var d=db(); items.forEach(function(i){ var p=find(d.stock[br],i.id); if(p){ p.qty=Math.max(0,p.qty-i.qty); d.shopLog.unshift({when:when,who:tech,action:'Checked out',product:p.name,qty:i.qty,unit:p.unit}); } }); save(); return true; },
+ returnItems:function(br,tech,items,when){ var d=db(); items.forEach(function(i){ var p=find(d.stock[br],i.id); if(p){ p.qty+=i.qty; d.shopLog.unshift({when:when,who:tech,action:'Returned',product:p.name,qty:i.qty,unit:p.unit}); } }); save(); return true; },
+ adminState:function(br,p){ pin(p); return shop(br); },
+ adminSaveProduct:function(br,p,x){ pin(p); var d=db(), a=d.stock[br], o=x.id?find(a,x.id):null; if(o) Object.assign(o,x,{qty:+x.qty,reorderAt:+x.reorderAt}); else a.push(Object.assign({},x,{id:'p'+Date.now().toString(36),qty:+x.qty||0,reorderAt:+x.reorderAt||0})); save(); return shop(br); },
+ adminRestock:function(br,p,id,add){ pin(p); var d=db(), o=find(d.stock[br],id); o.qty+=(+add||0); d.shopLog.unshift({when:Date.now(),who:'Manager',action:'Restocked',product:o.name,qty:+add||0,unit:o.unit}); save(); return shop(br); },
+ adminDeleteProduct:function(br,p,id){ pin(p); var d=db(); d.stock[br]=d.stock[br].filter(function(x){return x.id!==id;}); save(); return shop(br); },
+ adminAddTech:function(br,p,n){ pin(p); var d=db(); if(d.T.indexOf(n)<0) d.T.push(n); save(); return shop(br); },
+ adminRemoveTech:function(br,p,n){ pin(p); var d=db(); d.T=d.T.filter(function(x){return x!==n;}); save(); return shop(br); },
+ adminSettings:function(br,p,em){ pin(p); var d=db(); if(em!=null) d.email=em; save(); return shop(br); },
+ myData:function(n,p){ pin(p); return myV(n); },
+ myPin:function(n){ return myV(n); },
+ myRequestDelete:function(n,p,id){ var d=sk(); d.to=d.to.filter(function(r){return r.id!==id;}); save(); return myV(n); },
+ toDelete:function(p,id){ pin(p); var d=hr(); d.to=d.to.filter(function(r){return r.id!==id;}); save(); return d.to; },
+ strikeData:function(p){ pin(p); return skV(); },
+ strikeIssue:function(p,x){ pin(p); var d=sk(), c=/^No-call/.test(x.type)?2:1, t=dateIn(0); d.sk.inc.push({incident:'I'+Date.now().toString(36),employee:x.employee,branch:x.branch,type:x.type,count:c,live:c,incidentDate:x.incidentDate,note:x.note,by:x.by,state:'Active',expires:addD(x.incidentDate,365),shared:'',sharedHow:'',shareBy:addD(t,2),disputeBy:'',disputed:'',disputeResult:''}); if(x.requestId) d.sk.rev[x.requestId]=1;
+  var a=d.sk.inc.filter(function(i){return i.employee===x.employee&&i.state==='Active';}); if(a.reduce(function(s,i){return s+i.live;},0)>=3){ a.forEach(function(i){ i.state='Reset'; }); d.sk.res.push({id:'Z'+Date.now().toString(36),employee:x.employee,reached:t,meetingDue:addD(t,14),donuts:'',meeting:'',pip:d.sk.res.some(function(r){return r.employee===x.employee;}),pipDone:''}); } save(); return skV(); },
+ strikeNoStrike:function(p,x){ pin(p); var d=sk(); d.sk.rev[x.requestId]=1; d.sk.inc.push({incident:'I'+Date.now().toString(36),employee:x.employee,branch:x.branch,type:'No strike: '+x.reason,count:0,live:0,incidentDate:x.incidentDate,note:x.note,by:x.by,state:'No strike'}); save(); return skV(); },
+ strikeShare:function(p,id,how){ pin(p); var d=sk(), i=fi(d,id); i.shared=dateIn(0); i.sharedHow=how; i.disputeBy=dateIn(5); save(); return skV(); },
+ strikeDispute:function(p,id){ pin(p); var d=sk(); fi(d,id).disputed=dateIn(0); save(); return skV(); },
+ strikeDecide:function(p,id,r,o){ pin(p); var d=sk(), i=fi(d,id); if(o&&o.mistake){ i.state='Overturned'; i.live=0; } else { i.disputeResult=r; if(r==='Overturned'){ i.state='Overturned'; i.live=0; } } save(); return skV(); },
+ strikeRemove:function(p,n){ pin(p); var d=sk(), a=d.sk.inc.filter(function(i){return i.employee===n&&i.state==='Active'&&i.live>0;}).sort(function(x,y){return x.incidentDate<y.incidentDate?-1:1;})[0]; if(a){ a.live--; if(!a.live) a.state='Removed'; } save(); return skV(); },
+ strikeSetPin:function(p){ pin(p); return skV(); },
+ strikePto:function(p,n,o){ pin(p); var d=sk(); d.sk.pto[n]={eligible:o.eligible,allowance:+o.allowance||0,prior:+o.prior||0}; save(); return skV(); },
+ strikeMark:function(p,id,f){ pin(p); var d=sk(), r=d.sk.res.filter(function(x){return x.id===id;})[0]; r[f]=dateIn(0); save(); return skV(); },
+ mgmtUnlock:function(p){ pin(p); return true; },
+ obList:function(){ var d=hr(); var o=cfg().onboarding; return {plan:o.plan,signoff:o.signoff,hires:d.ob}; },
+ obStart:function(x){ var d=hr(), id='H'+Date.now().toString(36); d.ob.push({id:id,tech:x.tech,branch:x.branch,start:x.start,supervisor:x.supervisor,status:'In progress',signed:'',file:'',checks:{}}); save(); return id; },
+ obCheck:function(id,k,on,by){ var d=hr(), h=find(d.ob,id); if(on) h.checks[k]={by:by,at:dateIn(0)}; else delete h.checks[k]; save(); return h.checks; },
+ obSign:function(x){ pin(x.pin); var d=hr(), h=find(d.ob,x.id); h.status='Signed off'; h.supervisor=x.supervisor; h.signed=new Date().toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'})+' at '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); save(); return true; },
+ obRemove:function(id,p){ pin(p); var d=hr(); d.ob=d.ob.filter(function(h){return h.id!==id;}); save(); return true; },
+ policySigned:function(n){ return hr().sigs.filter(function(s){return s.name===n;}); },
+ policySign:function(x){ var d=hr(), w=Date.now(); d.sigs.push({name:x.name,policy:x.title,version:x.version,when:w,url:''}); save(); return {when:new Date(w).toLocaleDateString(),emailed:false}; },
+ polStatus:function(){ var d=hr(); return {people:d.people,sigs:d.sigs,docs:cfg().docs}; },
+ toMine:function(n){ return hr().to.filter(function(r){return r.name===n;}); },
+ toSubmit:function(x){ var d=hr(), s=new Date(x.start+'T12:00:00'), n=Math.round((s-new Date())/DAY), p=d.people.filter(function(q){return q.name===x.name;})[0]; d.to.unshift({id:'R'+Date.now().toString(36),name:x.name,branch:p?p.branch:'',start:x.start,end:x.end,hours:x.hours,pay:x.pay,status:'Pending',by:'',reason:'',notice:n,need:(+cfg().rules.noticeDays||3),blocked:false}); save(); return {late:n<(+cfg().rules.noticeDays||3)}; },
+ toAdmin:function(){ return hr().to; },
+ toDecide:function(p,id,st,by,why){ var d=hr(), r=find(d.to,id); r.status=st; r.by=by; r.reason=why||''; save(); return d.to; },
+ toBlocked:function(p,id,v){ var d=hr(), r=find(d.to,id); r.blocked=v; save(); return d.to; },
+ kpiData:function(p){ pin(p); return kpiSeed(); },
+ commList:function(){ var c=comm(); return Object.keys(c).map(function(k){ return {key:k,name:c[k].name,hasPw:true}; }); },
+ commData:function(who,pw){ cpw(pw); return commView(who); },
+ commSetPw:function(){ return true; },
+ commAddSale:function(who,pw,s){ cpw(pw); var d=db(), c=comm(), a=Number(String(s.amount).replace(/[$,\s]/g,''))||0; c[who].current.unshift({date:s.date,svc:s.svc,cust:s.cust,amt:a,cur:Math.round(a*10)/100}); d.comm=c; save(); return commView(who); },
+ manualData:function(p){ cpw(p); return {updated:new Date().toISOString(),canEdit:false,json:JSON.stringify(MANUAL)}; },
+ manualSave:function(){ throw new Error('The sample manual can’t be changed in this demo.'); },
+ sopData:function(){ return {updated:new Date().toISOString(),json:JSON.stringify(SOPS)}; },
+ hubConfig:function(){ return hubCfg(); },
+ adminData:function(p){ pin(p); return adminV(); },
+ adminSave:function(p,by,sec,v){ pin(p); var c=cfg(), d=db();
+  if(sec==='tiles'){ c.tiles=v.tiles||{}; c.tileOrder=v.order||{}; }
+  else if(sec==='emails'){ c.emails={timeOff:v.timeOff,fieldRoutes:v.fieldRoutes,strikes:v.strikes,reviews:v.reviews}; c.alerts=v.alerts||c.alerts; d.licEmail=v.licenseEmail; }
+  else if(sec==='rules'){ Object.keys(RULES0).forEach(function(k){ if(v[k]===undefined) return; c.rules[k]=(k==='exceptions'||k==='tempPin')?v[k]:(+v[k]||RULES0[k]); }); c.rules.exceptions=(c.rules.exceptions||[]).filter(function(x){return String(x).trim();}); }
+  else if(sec==='docs'||sec==='onboarding'||sec==='comm'||sec==='map'){ c[sec==='docs'?'docs':sec]=v; }
+  alog(by,{tiles:'Hub tiles saved',emails:'Emails saved',rules:'Rules saved',docs:'Documents saved',onboarding:'Onboarding checklist saved',comm:'Commission trackers saved',map:'Map settings saved'}[sec]||'Settings saved');
+  save(); return adminV(); },
+ adminPerson:function(p,by,x){ pin(p); var d=starts(), nm=String(x.name||'').trim(); if(!nm) throw new Error('Enter the employee’s name.');
+  var o=x.orig?d.people.filter(function(q){return q.name===x.orig;})[0]:null;
+  if(d.people.some(function(q){return q.name===nm&&q!==o;})) throw new Error('Someone already has that name.');
+  if(!o){ o={}; d.people.push(o); }
+  if(x.orig&&x.orig!==nm){ d.T=d.T.map(function(t){return t===x.orig?nm:t;}); if(d.starts[x.orig]){ d.starts[nm]=d.starts[x.orig]; delete d.starts[x.orig]; } }
+  Object.assign(o,{name:nm,role:x.role,section:x.section,branch:x.branch,phone:x.phone,email:x.email,notes:x.notes,manager:!!x.manager,status:x.status||''});
+  if(x.start) d.starts[nm]=x.start; else delete d.starts[nm];
+  alog(by,x.orig?'Employee updated':'Employee added',nm); save(); return adminV(); },
+ adminBranch:function(p,by,x){ pin(p); var c=cfg(), d=db(), code=String(x.code||'').trim().toUpperCase(), nm=String(x.name||'').trim();
+  if(!/^[A-Z]{2,4}$/.test(code)) throw new Error('Use a short code of 2 to 4 letters.'); if(!nm) throw new Error('Enter the branch name.');
+  var isNew=!c.branches[code]; c.branches[code]=nm; if(isNew){ c.alerts[code]=''; if(!d.stock[code]) d.stock[code]=[]; }
+  alog(by,isNew?'Branch added':'Branch renamed',nm); save(); return adminV(); },
+ adminSetPin:function(){ throw new Error('PINs can’t be changed in this demo. The demo PIN stays 1234.'); },
+ strikeReviewDone:function(p,n,by){ pin(p); var d=starts(); d.rev80[n]=dateIn(0); save(); return skV(); },
+ vehList:function(){ return vehV(); },
+ vehSave:function(x){ var v=veh(), nm=String(x.name||'').trim(), o=x.id?vFind(x.id):null;
+  if(v.list.some(function(y){return y.name.toLowerCase()===nm.toLowerCase()&&y!==o;})) throw new Error('Another vehicle already has that name.');
+  if(!o){ o={id:'V'+Date.now().toString(36),history:[],docs:[]}; v.list.push(o); }
+  Object.assign(o,{name:nm,year:vNum(x.year),make:x.make,model:x.model,plate:x.plate,plateState:x.plateState,vin:x.vin,branch:x.branch,driver:x.driver,mileage:vNum(x.mileage),regExpires:x.regExpires,insCompany:x.insCompany,policy:x.policy,insExpires:x.insExpires,oilMiles:vNum(x.oilMiles)||5000,oilMonths:vNum(x.oilMonths)||6,notes:x.notes,active:!!x.active});
+  save(); return vehV(); },
+ vehLog:function(r){ var o=vFind(r.vehicleId); if(!o) throw new Error('Vehicle not found.');
+  o.history.unshift({id:'S'+Date.now().toString(36),type:r.type,date:r.date,mileage:r.mileage,shop:r.shop,cost:r.cost,notes:r.notes,by:'Demo user'});
+  if(r.mileage!=null&&(o.mileage==null||r.mileage>o.mileage)) o.mileage=r.mileage; save(); return vehV(); },
+ vehDocAdd:function(x){ var v=veh(), o=vFind(x.vehicleId), id='D'+Date.now().toString(36);
+  o.docs.unshift({id:id,kind:x.kind,at:Date.now(),by:'Demo user'}); if(x.expires){ if(x.kind==='insurance') o.insExpires=x.expires; else o.regExpires=x.expires; }
+  if(String(x.data||'').length<1500000) v.docs[id]={type:x.type,data:x.data}; save(); return vehV(); },
+ vehDocGet:function(id){ var v=veh(); if(v.docs[id]) return v.docs[id]; var o=v.list.filter(function(y){return y.docs.some(function(z){return z.id===id;});})[0], k=o?o.docs.filter(function(z){return z.id===id;})[0].kind:'document';
+  return {type:'application/pdf',data:pdf64('Sample '+(k==='insurance'?'insurance card':'registration'),['Sample Pest Co. demo document',o?o.name+' - '+[o.year,o.make,o.model].join(' ')+' - Plate '+o.plate:'',o?(k==='insurance'?'Policy '+o.policy+' - Expires '+o.insExpires:'Registration expires '+o.regExpires):'','Not a real document. Each company uploads its own.'])}; },
+ vehDocDelete:function(p,id){ pin(p); var v=veh(); v.list.forEach(function(o){ o.docs=o.docs.filter(function(z){return z.id!==id;}); }); delete v.docs[id]; save(); return vehV(); },
+ vehServiceDelete:function(p,id){ pin(p); veh().list.forEach(function(o){ o.history=o.history.filter(function(h){return h.id!==id;}); }); save(); return vehV(); },
+ vehDelete:function(p,id){ pin(p); var v=veh(); v.list=v.list.filter(function(o){return o.id!==id;}); save(); return vehV(); },
+ vehReminders:function(){ var v=veh(); return {scheduled:!!v.email,email:v.email,days:v.days,fallback:'manager@samplepest.example'}; },
+ vehSettings:function(em,dy){ var v=veh(); v.email=em; v.days=String(dy).replace(/\s+/g,''); save(); return {scheduled:true,email:v.email,days:v.days,fallback:'manager@samplepest.example'}; },
+ vehTest:function(){ return {sent:0,note:'Demo only: no email was sent. The live version emails this reminder.'}; }
+};
+window.__demoCfg=function(){ return hubCfg(); };
+window.fetch=function(u,o){ var url=String(u&&u.url||u);
+ if(url==='demo-api'){ var b=JSON.parse(o.body), r;
+  try{ if(!F[b.fn]) throw new Error('Not in this demo.'); r={ok:true,data:JSON.parse(JSON.stringify(F[b.fn].apply(null,b.args||[])))}; }catch(e){ r={ok:false,error:e.message}; }
+  return new Promise(function(res){ setTimeout(function(){ res(new Response(JSON.stringify(r),{status:200,headers:{'Content-Type':'application/json'}})); },90); }); }
+ if(/nominatim/.test(url)){ var S=[{lat:'39.00000',lon:'-95.00000',address:{house_number:'418',road:'Sample Ln',city:'Sampleton',postcode:'00000'},display_name:'418 Sample Ln, Sampleton'}];
+  return Promise.resolve(new Response(JSON.stringify(/reverse/.test(url)?S[0]:S),{status:200})); }
+ return realFetch(u,o); };
+ls('shopBranch')||ls('shopBranch','IF');
+document.addEventListener('DOMContentLoaded',function(){
+ var root=document.documentElement.getAttribute('data-root')||'', b=document.createElement('div'); b.id='tsbar';
+ b.innerHTML='<a href="'+root+'index.html">PestHub overview</a><span>Demo: sample data. Manager PIN 1234.</span><button type="button" id="tsreset">Reset demo</button>';
+ document.body.insertBefore(b,document.body.firstChild);
+ document.getElementById('tsreset').addEventListener('click',function(){ try{ localStorage.clear(); }catch(e){} mem=null; location.reload(); });
+});
+})();
+</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f2324">
+<title>Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#f3f6f4;--surface:#fff;--sunk:#e6ecE8;--ink:#1f2324;--muted:#55635a;--line:#d5dfd8;--accent:#046725;--accent-ink:#ffffff;--accent-soft:#e4f1e8;--ok:#067a2e;
+@media (prefers-color-scheme: dark){:root{--bg:#0e100c;--surface:#181b15;--sunk:#0a0b08;--ink:#eef2ea;--muted:#9ba393;--line:#2a2f25;--accent:#8cc63f;--accent-soft:#25331a;--ok:#9fd65a;--bad:#ff8a80;color-scheme:dark}}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--body)}
+[hidden]{display:none!important}
+#app{max-width:820px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;gap:14px;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--ok)}
+.back{align-self:flex-start;font-weight:600;font-size:.95rem;text-decoration:none;padding:4px 0;margin-bottom:-6px}
+.title b{display:block;font:700 1.9rem/1.05 var(--display);letter-spacing:.02em;text-transform:uppercase}
+.title span{font-size:.78rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:600}
+h2{font:700 1.25rem/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase;margin:0}
+h3{font:700 1rem/1.25 var(--body);margin:0}
+p{margin:0}
+.muted{color:var(--muted)}.small{font-size:.87rem}
+.err{color:var(--bad);font-weight:600;margin:0}
+.okmsg{margin:0;padding:10px 12px;border-radius:10px;background:var(--accent-soft);color:var(--ok);font-weight:600}
+.warn{border-left:4px solid var(--bad);background:var(--sunk);border-radius:0 10px 10px 0;padding:10px 12px;font-size:.93rem}
+.note{border-left:4px solid var(--accent);background:var(--sunk);border-radius:0 10px 10px 0;padding:10px 12px;font-size:.93rem}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{min-height:38px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:.88rem;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:10px}
+.list{display:grid;gap:10px}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.row>*{min-width:0}
+.fld{display:grid;gap:5px;font-size:.85rem;font-weight:600;color:var(--muted)}
+.fld input,.fld select,.fld textarea{width:100%;min-height:46px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:500 1rem var(--body)}
+.fld textarea{padding:10px 12px;min-height:74px;resize:vertical}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:520px){.two{grid-template-columns:1fr}}
+.btn{min-height:46px;padding:0 16px;border-radius:12px;border:0;background:var(--ink);color:var(--bg);font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.soft{background:var(--sunk);color:var(--ink);border:1px solid var(--line)}
+.btn.tiny{min-height:36px;padding:0 10px;font-size:.85rem}
+.btn:disabled{opacity:.55;cursor:default}
+.acts{display:flex;gap:10px;flex-wrap:wrap}.acts .btn{flex:1 1 130px}
+.link{background:none;border:0;color:var(--ok);font-weight:600;cursor:pointer;padding:0}
+.tag{font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap;flex:none}
+.tag.ok{background:var(--accent-soft);color:var(--ok)}.tag.bad{color:var(--bad)}
+.person{width:100%;text-align:left;cursor:pointer;color:inherit;font:inherit}
+.person small{display:block;color:var(--muted)}
+.chk{display:flex;gap:9px;align-items:flex-start;font-weight:500;font-size:.95rem;color:var(--ink)}
+.chk input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--ok)}
+.line{display:flex;gap:8px;align-items:center}
+.line input{flex:1;min-width:0;min-height:42px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:.95rem}
+.log{font-size:.88rem;border-top:1px solid var(--line);padding-top:8px;overflow-wrap:anywhere}
+.log:first-child{border-top:0;padding-top:0}
+.lock{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 16px;display:grid;gap:12px;max-width:440px}
+</style>
+<script src="../hub-config.js"></script>
+<script>window.hubCached=window.hubCached||function(key,get,use){/* show the saved copy now, then the fresh one if it changed */var k='hc.'+key,old=null;try{old=localStorage.getItem(k);}catch(e){}if(old){try{use(JSON.parse(old),false);}catch(e){old=null;}}return get().then(function(d){var s=JSON.stringify(d);try{localStorage.setItem(k,s);}catch(e){}if(s!==old)use(d,true);return d;},function(e){if(!old)throw e;});};</script>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(function(){
+var API_URL='demo-api';
+var app=document.getElementById('app');
+var TABS=[['people','Employees'],['tiles','Hub tiles'],['emails','Emails'],['branches','Branches'],['rules','Rules'],['docs','Documents'],['onboarding','Onboarding'],['comm','Commissions'],['pins','PINs'],['log','Change log']];
+var GR={ops:'Operations',office:'Office Staff',mgmt:'Management'};
+var RULES=[['Employee review',[['reviewDays','Review is due this many days after the start date'],['reviewAhead','Send the first reminder this many days ahead']]],['Management',[['unlockMin','Keep Management unlocked for this many minutes']]],['PTO',[['ptoHours','Default PTO hours per year']]],['Time off notice',[['noticeDays','Days of notice required before it may be a strike']]],['Strikes',[['ncnsStrikes','Strikes for a no-call/no-show'],['resetAt','Active strikes that trigger a reset'],['expireMonths','Months until a strike expires'],['cleanDays','Clean days before the oldest strike can come off'],['disputeDays','Days to dispute a strike'],['shareDays','Working days to share a strike in writing']]]];
+function mgmtPin(){try{var p=sessionStorage.getItem('mgmt.pin'),u=+sessionStorage.getItem('mgmt.until'),t=+sessionStorage.getItem('mgmt.ttl')||18e5;if(p&&u>Date.now()){sessionStorage.setItem('mgmt.until',String(Date.now()+t));return p;}sessionStorage.removeItem('mgmt.pin');sessionStorage.removeItem('mgmt.until');}catch(e){}return '';}
+function mgmtLock(){try{sessionStorage.removeItem('mgmt.pin');sessionStorage.removeItem('mgmt.until');}catch(e){}}
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){return null;}}
+var S={pin:mgmtPin(),by:ls('to.by')||'',d:null,tab:'people',busy:false,err:'',msg:'',names:null,asking:false,edit:null,tileG:'ops',tileEdit:'',T:null,P:null,draft:{}};
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function api(fn,args){return fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({fn:fn,args:args})}).then(function(r){return r.json();}).then(function(j){if(!j.ok)throw new Error(j.error||'Error');return j.data;});}
+function val(id){var e=document.getElementById(id);return e?e.value:'';}
+function clone(o){return JSON.parse(JSON.stringify(o));}
+function dis(){return S.busy?' disabled':'';}
+function fld(label,id,v,type,extra){return '<label class="fld">'+esc(label)+'<input id="'+id+'" type="'+(type||'text')+'" value="'+esc(v)+'" '+(extra||'')+'></label>';}
+function loadNames(){if(S.names)return;hubCached('dir',function(){return api('getDirectory',[]);},function(d){var skip=/vendor|supplier|partner/i,seen={},m=[];d.people.forEach(function(p){if(skip.test(p.section||'')||seen[p.name])return;seen[p.name]=1;if(p.manager===undefined?/leadership/i.test(p.section||''):p.manager)m.push(p.name);});S.names={list:m.sort()};render();}).catch(function(){S.names={list:[],free:true};render();});}
+function whoForm(){var n=S.names,f;if(!n)return '<p class="muted">Loading names…</p>';f=n.free?'<input id="by" autocomplete="name" value="'+esc(S.by)+'">':'<select id="by"><option value="">Pick your name</option>'+n.list.map(function(x){return '<option'+(x===S.by?' selected':'')+'>'+esc(x)+'</option>';}).join('')+'</select>';return '<form class="lock" id="lf"><h2>Which manager are you?</h2><p class="muted small">Your name goes in the change log.</p><label class="fld">Your name'+f+'</label>'+(S.err?'<p class="err">'+esc(S.err)+'</p>':'')+'<button class="btn primary">Continue</button>'+(S.asking?'<button type="button" class="btn soft" data-a="managerno">Cancel</button>':'')+'</form>';}
+function head(){return '<a class="back" href="../index.html#mgmt">← Management</a><div class="title"><b>Admin</b><span>Hub settings</span></div>';}
+function load(){S.busy=true;S.err='';render();api('adminData',[S.pin]).then(function(d){S.d=d;S.busy=false;S.draft={};render();}).catch(function(x){S.busy=false;S.err=String(x.message||x);if(/pin/i.test(S.err)){S.pin='';mgmtLock();}render();});}
+function done(d,msg){S.d=d;S.busy=false;S.msg=msg||'Saved.';S.err='';S.draft={};S.edit=null;if(window.hubRefresh)window.hubRefresh();render();window.scrollTo(0,0);}
+function fail(x){S.busy=false;S.err=/fetch|network/i.test(String(x.message))?'Could not save. Check your connection and try again.':String(x.message||x);render();window.scrollTo(0,0);}
+function save(sec,v,msg){S.busy=true;S.err='';S.msg='';render();api('adminSave',[S.pin,S.by,sec,v]).then(function(d){done(d,msg);}).catch(fail);}
+/* ---- Employees ---- */
+function peopleTab(){var d=S.d;if(S.edit)return personForm();var l=d.people.slice().sort(function(a,b){var x=a.status==='Inactive'?1:0,y=b.status==='Inactive'?1:0;return x-y||(a.name<b.name?-1:1);});
+  return '<div class="acts"><button class="btn primary" data-a="padd">Add an employee</button></div><div class="list">'+l.map(function(p){return '<button class="card person" data-a="pedit" data-n="'+esc(p.name)+'"><div class="row"><span><b>'+esc(p.name)+'</b><small>'+esc([p.role,p.branch].filter(Boolean).join(' · ')||p.section)+'</small></span><span class="chips">'+(p.manager?'<span class="tag ok">Manager</span>':'')+(p.status==='Inactive'?'<span class="tag bad">Inactive</span>':'')+'</span></div></button>';}).join('')+'</div>';}
+function personForm(){var e=S.edit,secs={};S.d.people.forEach(function(p){if(p.section)secs[p.section]=1;});
+  return '<form class="card" id="pf"><h2>'+(e.orig?esc(e.orig):'New employee')+'</h2><div class="two">'+fld('Full name','p_name',e.name)+fld('Role','p_role',e.role)+'<label class="fld">Directory section<input id="p_sec" list="secs" value="'+esc(e.section)+'"></label><datalist id="secs">'+Object.keys(secs).map(function(s){return '<option value="'+esc(s)+'">';}).join('')+'</datalist>'+fld('Branch','p_br',e.branch)+fld('Phone','p_ph',e.phone,'tel')+fld('Email','p_em',e.email,'email')+fld('Start date','p_st',e.start,'date')+'</div><label class="fld">Notes<textarea id="p_no">'+esc(e.notes)+'</textarea></label><label class="chk"><input id="p_mg" type="checkbox"'+(e.manager?' checked':'')+'><span>Manager. Shows in the name list for Time Off Tracker, Employee Management and Admin.</span></label><label class="chk"><input id="p_ac" type="checkbox"'+(e.status!=='Inactive'?' checked':'')+'><span>Active. Turn off when someone leaves. Their records stay, but they disappear from name lists and reminders.</span></label>'+(e.orig?'<p class="note">Renaming updates strikes, PINs, PTO, start dates and time off. Signed documents keep the name they were signed under, so they\'ll show under "Signed under another name".</p>':'')+'<div class="acts"><button class="btn primary"'+dis()+'>Save employee</button><button type="button" class="btn soft" data-a="pcancel">Cancel</button></div></form>';}
+/* ---- Hub tiles ---- */
+function loadTiles(){if(S.T||S.tileLoading)return;S.tileLoading=true;fetch('../index.html?_='+Date.now(),{cache:'no-store'}).then(function(r){return r.text();}).then(function(t){var doc=new DOMParser().parseFromString(t,'text/html'),m=/var DEF=(\{.*?\});/.exec(t),def=m?JSON.parse(m[1]):{},out={};[].forEach.call(doc.querySelectorAll('a.tile'),function(a){var b=a.querySelector('b');out[a.getAttribute('href')]={name:b.textContent,sub:(a.querySelector('b+span')||{}).textContent||'',groups:(a.getAttribute('data-g')||'').split(/\s+/).filter(String),hidden:false};});S.T={base:out,def:def};S.tileLoading=false;render();}).catch(function(){S.tileLoading=false;S.err='Could not read the Hub tiles.';render();});}
+function tDraft(){if(S.draft.tiles)return S.draft.tiles;var d={tiles:{},order:clone(S.d.tileOrder||{})};Object.keys(S.T.base).forEach(function(h){var b=S.T.base[h],x=(S.d.tiles||{})[h]||{};d.tiles[h]={name:x.name||b.name,sub:x.sub||b.sub,hidden:!!x.hidden,groups:x.groups||b.groups};});Object.keys(GR).forEach(function(g){var seen={},l=(d.order[g]&&d.order[g].length?d.order[g]:(S.T.def[g]||[])).filter(function(h){return d.tiles[h];});Object.keys(d.tiles).forEach(function(h){if(l.indexOf(h)<0)l.push(h);});d.order[g]=l;});S.draft.tiles=d;return d;}
+function tilesTab(){loadTiles();if(!S.T)return '<p class="muted">Loading tiles…</p>';var d=tDraft(),g=S.tileG,h='<div class="chips">'+Object.keys(GR).map(function(k){return '<button class="chip" data-a="tg" data-g="'+k+'" aria-pressed="'+(g===k)+'">'+GR[k]+'</button>';}).join('')+'<button class="chip" data-a="tg" data-g="hidden" aria-pressed="'+(g==='hidden')+'">Hidden</button></div>';
+  var l=g==='hidden'?Object.keys(d.tiles).filter(function(x){return d.tiles[x].hidden;}):d.order[g].filter(function(x){return d.tiles[x].groups.indexOf(g)>=0&&!d.tiles[x].hidden;});
+  h+='<div class="list">'+(l.length?l.map(function(x){var t=d.tiles[x],sel=S.tileEdit===x;return '<div class="card"><div class="row"><span><b>'+esc(t.name)+'</b><small class="muted" style="display:block">'+esc(t.sub)+'</small></span><span class="line">'+(g!=='hidden'?'<button class="btn soft tiny" data-a="tup" data-h="'+esc(x)+'" aria-label="Move up">↑</button><button class="btn soft tiny" data-a="tdn" data-h="'+esc(x)+'" aria-label="Move down">↓</button>':'')+'<button class="btn soft tiny" data-a="ted" data-h="'+esc(x)+'">'+(sel?'Close':'Edit')+'</button></span></div>'+(sel?tileForm(x,t):'')+'</div>';}).join(''):'<p class="muted">No tiles here.</p>')+'</div>';
+  return h+'<p class="note small">Someone who has dragged their own tiles keeps their order on their device. Tiles moved or hidden here still work by direct link. Management tools still need the Management unlock, even in another section.</p><div class="acts"><button class="btn primary" data-a="tsave"'+dis()+'>Save tiles</button></div>';}
+function tileForm(x,t){var locked=x==='admin/index.html',me=x==='me/index.html';return '<div class="two">'+fld('Name','t_n',t.name,'text','data-t="name"')+fld('Description','t_s',t.sub,'text','data-t="sub"')+'</div>'+(locked||me?'<p class="muted small">'+(locked?'Admin always stays in Management so you can\'t lock yourself out.':'My Dashboard is a home screen button and can\'t be hidden or moved.')+'</p>':'<div class="chips">'+Object.keys(GR).map(function(k){return '<label class="chk"><input type="checkbox" data-tg="'+k+'"'+(t.groups.indexOf(k)>=0?' checked':'')+'><span>'+GR[k]+'</span></label>';}).join('')+'</div><label class="chk"><input type="checkbox" data-th="1"'+(t.hidden?' checked':'')+'><span>Hide this tile from everyone</span></label>');}
+/* ---- Emails ---- */
+function emailsTab(){var d=S.d,e=d.emails,row=function(k,l){return fld(l,'e_'+k,e[k],'text','placeholder="'+esc(d.defaultEmail)+'"');};return '<form class="card" id="ef"><h2>Who gets which alerts</h2><p class="muted small">Separate more than one address with commas. Blank uses '+esc(d.defaultEmail)+'.</p>'+row('timeOff','New time off requests')+row('fieldRoutes','Schedule block and unblock reminders')+row('strikes','Strike alerts')+row('reviews','Employee review reminders')+fld('License renewal reminders','e_lic',d.licenseEmail)+'<h3>Shop restock and trap alerts by branch</h3>'+Object.keys(d.branches).map(function(k){return fld(d.branches[k],'e_b_'+k,d.alerts[k]);}).join('')+'<button class="btn primary"'+dis()+'>Save emails</button></form>';}
+/* ---- Branches ---- */
+function branchesTab(){var b=S.d.branches;return '<div class="list">'+Object.keys(b).map(function(k){return '<form class="card" data-f="br" data-c="'+esc(k)+'"><div class="row"><h3>Branch code '+esc(k)+'</h3></div><div class="line"><input id="b_'+esc(k)+'" value="'+esc(b[k])+'" aria-label="Branch name"><button class="btn soft tiny"'+dis()+'>Rename</button></div></form>';}).join('')+'</div><form class="card" data-f="bradd"><h2>Add a branch</h2><div class="two">'+fld('Branch name','b_new','')+fld('Short code (2 to 4 letters)','b_code','','text','maxlength="4"')+'</div><p class="note small">Adding a branch creates its shop tabs and adds it to Shop, Traps, Licenses and Onboarding. Renaming keeps its history. Employees\' Directory branch is typed separately on each employee.</p><button class="btn primary"'+dis()+'>Add branch</button></form>';}
+/* ---- Rules ---- */
+function rulesTab(){var r=S.draft.rules||(S.draft.rules=clone(S.d.rules));return '<form class="list" id="rf"><div class="warn"><b>These should match your written policy.</b> Changing a number here does not change the Handbook or Time Off policy employees signed. Update the policy too, or the app and the policy will disagree.</div><p class="note small">New rules apply going forward. Strikes already issued keep their expiration and deadlines, and requests already made keep the notice rule they were made under.</p>'+RULES.map(function(g){return '<div class="card"><h2>'+g[0]+'</h2>'+g[1].map(function(f){return fld(f[1],'r_'+f[0],r[f[0]],'number','inputmode="numeric"');}).join('')+'</div>';}).join('')+'<div class="card"><h2>Temporary employee PIN</h2>'+fld('New employees and PIN resets sign in with this','r_temp',r.tempPin,'text','inputmode="numeric" maxlength="8"')+'<p class="muted small">Anyone who hasn\'t picked their own PIN yet will use the new one right away. People with their own PIN aren\'t affected.</p></div><div class="card"><h2>Strike exceptions</h2><p class="muted small">Reasons a manager can pick for "No strike". Past decisions keep the reason they were given.</p><div class="list">'+r.exceptions.map(function(x,i){return '<div class="line"><input data-x="'+i+'" value="'+esc(x)+'" aria-label="Exception"><button type="button" class="btn soft tiny" data-a="xdel" data-i="'+i+'">Remove</button></div>';}).join('')+'</div><button type="button" class="btn soft" data-a="xadd">Add an exception</button></div><button class="btn primary"'+dis()+'>Save rules</button></form>';}
+function grabRules(){var r=S.draft.rules;if(!r)return;RULES.forEach(function(g){g[1].forEach(function(f){var e=document.getElementById('r_'+f[0]);if(e)r[f[0]]=e.value;});});var t=document.getElementById('r_temp');if(t)r.tempPin=t.value;[].forEach.call(document.querySelectorAll('[data-x]'),function(e){r.exceptions[+e.getAttribute('data-x')]=e.value;});}
+/* ---- Documents ---- */
+function loadPol(){if(S.P||S.polLoading)return;S.polLoading=true;fetch('../policies/index.html?_='+Date.now(),{cache:'no-store'}).then(function(r){return r.text();}).then(function(t){var re=/\{\s*"?id"?\s*:\s*['"]([^'"]+)['"]\s*,\s*"?title"?\s*:\s*['"](.+?)['"]\s*,\s*"?version"?\s*:\s*['"](.+?)['"]/g,m,out=[];while((m=re.exec(t)))out.push({id:m[1],title:m[2].replace(/\\'/g,"'"),version:m[3]});S.P=out;S.polLoading=false;render();}).catch(function(){S.polLoading=false;S.err='Could not read the documents.';render();});}
+function docsTab(){loadPol();if(!S.P)return '<p class="muted">Loading documents…</p>';var d=S.draft.docs||(S.draft.docs=clone(S.d.docs||{})),secs={};S.d.people.forEach(function(p){if(p.section&&!/vendor|supplier|partner/i.test(p.section))secs[p.section]=1;});
+  return '<p class="note small">Adding a new document or changing its wording still needs a developer. Here you choose who must sign and which versions count.</p><div class="list">'+S.P.map(function(p){var c=d[p.id]||{required:true,sections:[],accept:[]},vs=Object.keys((S.d.versions||{})[p.title]||{}).filter(function(v){return v!==p.version;});return '<div class="card" data-doc="'+esc(p.id)+'"><div class="row"><h3>'+esc(p.title)+'</h3><span class="tag">'+esc(p.version)+'</span></div><label class="chk"><input type="checkbox" data-dr="1"'+(c.required!==false?' checked':'')+'><span>Required</span></label><p class="muted small">Who must sign. Leave all off for everyone.</p><div class="chips">'+Object.keys(secs).map(function(s){return '<label class="chk"><input type="checkbox" data-ds="'+esc(s)+'"'+((c.sections||[]).indexOf(s)>=0?' checked':'')+'><span>'+esc(s)+'</span></label>';}).join('')+'</div>'+(vs.length?'<p class="muted small">Older signed versions that still count, so nobody has to re-sign:</p>'+vs.map(function(v){return '<label class="chk"><input type="checkbox" data-dv="'+esc(v)+'"'+((c.accept||[]).indexOf(v)>=0?' checked':'')+'><span>'+esc(v)+'</span></label>';}).join(''):'<p class="muted small">No older signed versions.</p>')+'</div>';}).join('')+'</div><div class="acts"><button class="btn primary" data-a="dsave"'+dis()+'>Save documents</button></div>';}
+function grabDocs(){var o={};[].forEach.call(document.querySelectorAll('[data-doc]'),function(c){var pick=function(a){return [].filter.call(c.querySelectorAll('['+a+']'),function(e){return e.checked;}).map(function(e){return e.getAttribute(a);});};o[c.getAttribute('data-doc')]={required:c.querySelector('[data-dr]').checked,sections:pick('data-ds'),accept:pick('data-dv')};});return o;}
+/* ---- Onboarding ---- */
+function obDraft(){return S.draft.ob||(S.draft.ob=clone(S.d.onboarding));}
+function obTab(){var o=obDraft(),WHO={owner:'Owner / office',tech:'Tech',supervisor:'Supervisor'},items=function(l,g){return l.map(function(it,i){return '<div class="line"><input data-ob="'+g+'" data-i="'+i+'" value="'+esc(it[1])+'" aria-label="Checklist item"><button type="button" class="btn soft tiny" data-a="obdel" data-g="'+g+'" data-i="'+i+'">Remove</button></div>';}).join('')+'<button type="button" class="btn soft tiny" data-a="obadd" data-g="'+g+'">Add item</button>';};
+  return '<p class="note small">Changes apply to new checklists and to checklists still in progress, so a new item must be checked before an open checklist can be signed off. Checklists already signed off don\'t change.</p><div class="list">'+o.plan.map(function(g,gi){return '<div class="card"><div class="two"><label class="fld">When<input data-obf="phase" data-g="'+gi+'" value="'+esc(g.phase)+'"></label><label class="fld">Who does it<select data-obf="who" data-g="'+gi+'">'+Object.keys(WHO).map(function(k){return '<option value="'+k+'"'+(g.who===k?' selected':'')+'>'+WHO[k]+'</option>';}).join('')+'</select></label></div><label class="fld">Group name<input data-obf="group" data-g="'+gi+'" value="'+esc(g.group)+'"></label>'+items(g.items,gi)+'<button type="button" class="link" data-a="obgdel" data-g="'+gi+'">Remove this group</button></div>';}).join('')+'<button type="button" class="btn soft" data-a="obgadd">Add a group</button><div class="card"><h2>Final sign-off</h2>'+items(o.signoff,'s')+'</div></div><div class="acts"><button class="btn primary" data-a="obsave"'+dis()+'>Save checklist</button></div>';}
+function grabOb(){var o=S.draft.ob;if(!o)return;[].forEach.call(document.querySelectorAll('[data-ob]'),function(e){var g=e.getAttribute('data-ob'),l=g==='s'?o.signoff:o.plan[+g].items;l[+e.getAttribute('data-i')][1]=e.value;});[].forEach.call(document.querySelectorAll('[data-obf]'),function(e){o.plan[+e.getAttribute('data-g')][e.getAttribute('data-obf')]=e.value;});}
+/* ---- Commissions ---- */
+function commTab(){var l=S.draft.comm||(S.draft.comm=clone(S.d.comm));return '<form class="list" id="cf"><p class="note small">Each rep needs a Google Sheet in the same format as the current commission sheets, shared with the account that owns the Hub. They set their own password the first time they open it.</p>'+l.map(function(c,i){return '<div class="card">'+fld('Rep name','c_n'+i,c.name)+fld('Google Sheet link','c_f'+i,c.file,'text','placeholder="Paste the sheet link"')+'<button type="button" class="link" data-a="cdel" data-i="'+i+'" style="justify-self:start">Remove this tracker</button></div>';}).join('')+'<button type="button" class="btn soft" data-a="cadd">Add a rep</button><button class="btn primary"'+dis()+'>Save commissions</button></form>';}
+function grabComm(){(S.draft.comm||[]).forEach(function(c,i){var n=document.getElementById('c_n'+i),f=document.getElementById('c_f'+i);if(n)c.name=n.value;if(f)c.file=f.value;});}
+/* ---- Map ---- */
+function mapTab(){var m=S.d.map;return '<form class="card" id="mf"><h2>Measure tool map</h2><label class="fld">Imagery<select id="m_p"><option value="google"'+(m.provider==='google'?' selected':'')+'>Google (sharper)</option><option value="esri"'+(m.provider==='esri'?' selected':'')+'>Esri (no Google charges)</option></select></label>'+fld('Google map squares per device per day (0 = no limit)','m_d',m.dailyTiles,'number','inputmode="numeric"')+'<p class="warn small">This limit counts on each phone or computer, not across the company. Past it, that device switches to Esri for the rest of the day. It can\'t cap your Google bill, because the map talks to Google directly. Use a Google Cloud budget alert for that.</p><button class="btn primary"'+dis()+'>Save map</button></form>';}
+/* ---- PINs ---- */
+function pinsTab(){var box=function(w,t,sub,cur,nw){return '<form class="card" data-f="pin" data-w="'+w+'"><h2>'+t+'</h2><p class="muted small">'+sub+'</p>'+fld(cur,'pc_'+w,'','password','autocomplete="off"')+fld(nw,'pn_'+w,'','password','autocomplete="new-password"')+fld('Type it again','pa_'+w,'','password','autocomplete="new-password"')+'<button class="btn primary"'+dis()+'>Change</button></form>';};return '<div class="list">'+box('management','Management PIN','Opens the Management section. Tell your managers when it changes.','Current PIN','New PIN (4 to 8 digits)')+box('pricing','Pricing PIN','Unlocks editing in the Pricing Guide.','Current PIN','New PIN (4 to 8 digits)')+box('master','Master password','Owner only. It also opens every commission tracker.',S.d.hasMaster?'Current master password':'No master password yet. Leave this blank.','New master password (6 or more characters)')+'</div>';}
+/* ---- Log ---- */
+function logTab(){var l=S.d.log||[];return l.length?'<div class="card">'+l.map(function(x){return '<div class="log"><b>'+esc(x.what)+'</b><br><span class="muted">'+esc(x.when?new Date(x.when).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'')+' · '+esc(x.who)+'</span>'+(x.to?'<br><span class="small">'+esc(x.to)+'</span>':'')+'</div>';}).join('')+'</div>':'<p class="muted">No changes yet.</p>';}
+function tabBody(){return {people:peopleTab,tiles:tilesTab,emails:emailsTab,branches:branchesTab,rules:rulesTab,docs:docsTab,onboarding:obTab,comm:commTab,map:mapTab,pins:pinsTab,log:logTab}[S.tab]();}
+function render(){var h=head();
+  if(!S.pin)h+='<div class="lock"><h2>Managers only</h2><p class="muted">Open this from the Management section.</p>'+(S.err?'<p class="err">'+esc(S.err)+'</p>':'')+'<a class="btn primary" href="../index.html#mgmt">Go to Management</a></div>';
+  else if(S.asking||!S.by)h+=whoForm();
+  else if(!S.d)h+=S.busy?'<p class="muted">Opening…</p>':(S.err?'<p class="err">'+esc(S.err)+'</p><button class="btn soft" data-a="retry">Try again</button>':'');
+  else{if(S.msg)h+='<p class="okmsg">'+esc(S.msg)+'</p>';if(S.err)h+='<p class="err">'+esc(S.err)+'</p>';h+='<div class="chips">'+TABS.map(function(t){return '<button class="chip" data-tab="'+t[0]+'" aria-pressed="'+(S.tab===t[0])+'">'+t[1]+'</button>';}).join('')+'</div>'+tabBody()+'<p class="muted small">Changing settings as <b>'+esc(S.by)+'</b> · <button class="link" data-a="manager">Change</button></p>';}
+  var y=window.scrollY;app.innerHTML=h;window.scrollTo(0,y);}
+app.addEventListener('input',function(e){var t=e.target,k=t.getAttribute('data-t');if(k&&S.tileEdit&&S.draft.tiles)S.draft.tiles.tiles[S.tileEdit][k]=t.value;});
+app.addEventListener('change',function(e){var t=e.target,d=S.draft.tiles,g=t.getAttribute('data-tg');if(d&&S.tileEdit){var x=d.tiles[S.tileEdit];if(g){x.groups=x.groups.filter(function(y){return y!==g;});if(t.checked)x.groups.push(g);}if(t.getAttribute('data-th'))x.hidden=t.checked;}});
+app.addEventListener('submit',function(e){e.preventDefault();var f=e.target,fk=f.getAttribute('data-f');
+  if(f.id==='lf'){var by=val('by').trim();if(!by){S.err='Pick your name.';render();return;}S.by=by;ls('to.by',by);S.err='';S.asking=false;if(S.d)render();else load();return;}
+  if(f.id==='pf'){var x={orig:S.edit.orig,name:val('p_name'),role:val('p_role'),section:val('p_sec'),branch:val('p_br'),phone:val('p_ph'),email:val('p_em'),start:val('p_st'),notes:val('p_no'),manager:document.getElementById('p_mg').checked,status:document.getElementById('p_ac').checked?'':'Inactive'};S.edit=Object.assign({},S.edit,x);S.busy=true;S.err='';S.msg='';render();api('adminPerson',[S.pin,S.by,x]).then(function(d){done(d,'Employee saved.');}).catch(fail);return;}
+  if(f.id==='ef'){var v={};['timeOff','fieldRoutes','strikes','reviews'].forEach(function(k){v[k]=val('e_'+k);});v.licenseEmail=val('e_lic');v.alerts={};Object.keys(S.d.branches).forEach(function(k){v.alerts[k]=val('e_b_'+k);});save('emails',v,'Emails saved.');return;}
+  if(f.id==='rf'){grabRules();save('rules',S.draft.rules,'Rules saved. Update the written policy if it changed.');return;}
+  if(f.id==='cf'){grabComm();save('comm',S.draft.comm,'Commissions saved.');return;}
+  if(f.id==='mf'){save('map',{provider:val('m_p'),dailyTiles:val('m_d')},'Map saved.');return;}
+  if(fk==='br'||fk==='bradd'){var code=fk==='br'?f.getAttribute('data-c'):val('b_code'),nm=fk==='br'?val('b_'+code):val('b_new');S.busy=true;S.err='';S.msg='';render();api('adminBranch',[S.pin,S.by,{code:code,name:nm}]).then(function(d){done(d,fk==='br'?'Branch renamed.':'Branch added.');}).catch(fail);return;}
+  if(fk==='pin'){var w=f.getAttribute('data-w'),cur=val('pc_'+w),nw=val('pn_'+w),ag=val('pa_'+w);if(nw!==ag){S.err='Those don\'t match.';render();return;}S.busy=true;S.err='';S.msg='';render();api('adminSetPin',[S.pin,S.by,w,cur,nw]).then(function(){if(w==='management'){S.pin=nw;try{sessionStorage.setItem('mgmt.pin',nw);}catch(x){}}S.busy=false;S.msg='Changed.';if(w==='master')S.d.hasMaster=true;render();window.scrollTo(0,0);}).catch(fail);return;}});
+app.addEventListener('click',function(e){var t=e.target.closest('button');if(!t)return;var a=t.getAttribute('data-a');
+  if(t.dataset.tab){if(S.tab==='rules')grabRules();if(S.tab==='comm')grabComm();if(S.tab==='onboarding')grabOb();S.tab=t.dataset.tab;S.msg='';S.err='';S.edit=null;render();window.scrollTo(0,0);return;}
+  if(a==='retry')load();if(a==='manager'){S.asking=true;S.err='';loadNames();render();}if(a==='managerno'){S.asking=false;S.err='';render();}
+  if(a==='padd'){S.edit={orig:'',name:'',role:'',section:'',branch:'',phone:'',email:'',start:'',notes:'',manager:false,status:''};S.msg='';render();window.scrollTo(0,0);}
+  if(a==='pedit'){var p=S.d.people.filter(function(y){return y.name===t.dataset.n;})[0];S.edit=Object.assign({orig:p.name},p);S.msg='';render();window.scrollTo(0,0);}
+  if(a==='pcancel'){S.edit=null;S.err='';render();}
+  if(a==='tg'){S.tileG=t.dataset.g;S.tileEdit='';render();}if(a==='ted'){S.tileEdit=S.tileEdit===t.dataset.h?'':t.dataset.h;render();}
+  if(a==='tup'||a==='tdn'){var d=tDraft(),l=d.order[S.tileG],vis=l.filter(function(x){return d.tiles[x].groups.indexOf(S.tileG)>=0&&!d.tiles[x].hidden;}),i=vis.indexOf(t.dataset.h),j=i+(a==='tup'?-1:1);if(j>=0&&j<vis.length){var A=l.indexOf(vis[i]),B=l.indexOf(vis[j]);l[A]=vis[j];l[B]=vis[i];render();}}
+  if(a==='tsave'){var dd=tDraft(),o={};Object.keys(dd.tiles).forEach(function(h){var b=S.T.base[h],x=dd.tiles[h];if(x.name!==b.name||x.sub!==b.sub||x.hidden||x.groups.join()!==b.groups.join())o[h]=x;});save('tiles',{tiles:o,order:dd.order},'Tiles saved.');}
+  if(a==='xadd'){grabRules();S.draft.rules.exceptions.push('');render();}if(a==='xdel'){grabRules();S.draft.rules.exceptions.splice(+t.dataset.i,1);render();}
+  if(a==='dsave'){var g=grabDocs();S.draft.docs=g;save('docs',g,'Documents saved.');}
+  if(a==='obadd'||a==='obdel'||a==='obgadd'||a==='obgdel'){grabOb();var ob=S.draft.ob,gi=t.dataset.g,li=gi==='s'?ob.signoff:gi!==undefined?ob.plan[+gi]&&ob.plan[+gi].items:null;if(a==='obadd')li.push(['','']);if(a==='obdel')li.splice(+t.dataset.i,1);if(a==='obgadd')ob.plan.push({phase:'',group:'',who:'supervisor',items:[['','']]});if(a==='obgdel')ob.plan.splice(+gi,1);render();}
+  if(a==='obsave'){grabOb();save('onboarding',S.draft.ob,'Checklist saved.');}
+  if(a==='cadd'){grabComm();S.draft.comm.push({key:'',name:'',file:''});render();}if(a==='cdel'){grabComm();S.draft.comm.splice(+t.dataset.i,1);render();}});
+if(S.pin&&S.by)load();else{if(S.pin)loadNames();render();}
+})();
+</script>
+</body>
+</html>

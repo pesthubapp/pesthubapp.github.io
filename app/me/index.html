@@ -114,15 +114,49 @@ function sk(){ var d=hr(); if(!d.sk){ d.sk={inc:[
  {incident:'I3',employee:'Dana Whitfield',branch:'North Branch',type:'Late notice',count:1,live:1,incidentDate:dateIn(-95),note:'',by:'Rosa Delgado',state:'Active',expires:dateIn(270),shared:dateIn(-94),sharedHow:'Email',shareBy:dateIn(-93),disputeBy:dateIn(-88),disputed:'',disputeResult:''}],res:[],rev:{},pto:{}}; save(); } return d; }
 function ptoOf(d,n){ var c=d.sk.pto[n]||{eligible:'Yes',allowance:40,prior:0}, y=new Date().getFullYear(), u=0, sc=0, pe=0, t=dateIn(0); d.to.forEach(function(r){ if(r.name!==n||r.pay!=='Paid') return; var h=+r.hours||0; if(r.status==='Pending') pe+=h; else if(r.status==='Approved'){ if(r.start>t) sc+=h; else u+=h; } }); var al=+c.allowance||0, pr=+c.prior||0; return {year:y,eligible:c.eligible==='Yes',allowance:al,prior:pr,used:u,scheduled:sc,pending:pe,left:Math.max(0,al-pr-u-sc-pe)}; }
 function skP(d,p){ var l=d.sk.inc.filter(function(i){return i.employee===p.name&&i.count;}), a=l.filter(function(i){return i.state==='Active';}), act=a.reduce(function(s,i){return s+i.live;},0), last=l.reduce(function(m,i){return i.incidentDate>m?i.incidentDate:m;},''), on=last?addD(last,90):'';
- return {name:p.name,branch:p.branch,email:p.email,active:act,resets12:d.sk.res.filter(function(r){return r.employee===p.name;}).length,removeOn:act?on:'',removable:!!(act&&on<=dateIn(0)),hasPin:false,pto:ptoOf(d,p.name)}; }
+ return {name:p.name,branch:p.branch,email:p.email,active:act,resets12:d.sk.res.filter(function(r){return r.employee===p.name;}).length,removeOn:act?on:'',removable:!!(act&&on<=dateIn(0)),hasPin:true,start:(starts().starts[p.name]||''),reviewDone:(d.rev80&&d.rev80[p.name])||'',pto:ptoOf(d,p.name)}; }
 function skV(){ var d=sk(), team=d.people.map(function(p){return skP(d,p);}), t=dateIn(0), todo=[];
  d.to.forEach(function(r){ if(+r.notice<3&&!d.sk.rev[r.id]) todo.push({k:'review',r:r}); });
  d.sk.inc.forEach(function(i){ if(i.count&&!i.shared&&i.state==='Active') todo.push({k:'share',i:i,late:i.shareBy<t}); if(i.disputed&&!i.disputeResult) todo.push({k:'dispute',i:i}); });
  d.sk.res.forEach(function(r){ if(!r.donuts||!r.meeting||(r.pip&&!r.pipDone)) todo.push({k:'reset',r:r,late:r.meetingDue<t}); });
  team.forEach(function(p){ if(p.removable) todo.push({k:'clean',p:p}); });
- return {today:t,exc:['Family emergency','Illness','Legally protected leave','Manager approved in advance'],team:team,incidents:d.sk.inc.slice().reverse(),resets:d.sk.res,todo:todo}; }
-function myV(n){ var d=sk(), p=d.people.filter(function(x){return x.name===n;})[0]||{name:n}, s=skP(d,p); return {name:n,today:dateIn(0),active:s.active,removeOn:s.removeOn,removable:s.removable,strikes:d.sk.inc.filter(function(i){return i.employee===n&&i.count;}).reverse(),resets:d.sk.res.filter(function(r){return r.employee===n;}),pto:s.pto,requests:d.to.filter(function(r){return r.name===n;}),mustChange:false}; }
+ var R=cfg().rules; team.forEach(function(p){ if(!p.start||p.reviewDone) return; var due=addD(p.start,+R.reviewDays||80), days=Math.round((new Date(due+'T12:00:00')-new Date(t+'T12:00:00'))/DAY); if(days<=(+R.reviewAhead||7)) todo.push({k:'hire80',name:p.name,branch:p.branch,start:p.start,due:due,days:days,late:days<0}); });
+ return {today:t,rules:R,exc:R.exceptions,starts:{total:team.length,entered:team.filter(function(p){return p.start;}).length,bad:[],url:''},team:team,incidents:d.sk.inc.slice().reverse(),resets:d.sk.res,todo:todo}; }
+function myV(n){ var d=sk(), p=d.people.filter(function(x){return x.name===n;})[0]||{name:n}, s=skP(d,p); return {name:n,today:dateIn(0),active:s.active,removeOn:s.removeOn,removable:s.removable,strikes:d.sk.inc.filter(function(i){return i.employee===n&&i.count;}).reverse(),resets:d.sk.res.filter(function(r){return r.employee===n;}),pto:s.pto,requests:d.to.filter(function(r){return r.name===n;}),mustChange:false,startDate:(starts().starts[n]||''),rules:cfg().rules}; }
 function fi(d,id){ return d.sk.inc.filter(function(i){return i.incident===id;})[0]; }
+/* Admin settings, start dates and vehicles (sample data). */
+var RULES0={reviewDays:80,reviewAhead:7,unlockMin:30,ptoHours:40,noticeDays:3,ncnsStrikes:2,resetAt:3,expireMonths:12,cleanDays:90,disputeDays:5,shareDays:2,tempPin:'1234',exceptions:['Family emergency','Illness','Legally protected leave','Manager approved in advance']};
+function cfg(){ var d=db(); if(!d.cfg){ d.cfg={branches:{IF:'North Branch',WY:'South Branch',BZ:'East Branch'},rules:JSON.parse(JSON.stringify(RULES0)),docs:{},tiles:{},tileOrder:{},map:{provider:'esri',dailyTiles:0},
+  emails:{timeOff:'',fieldRoutes:'',strikes:'',reviews:''},alerts:{IF:'',WY:'',BZ:''},comm:[{name:'Theo Marsh',file:''},{name:'Dana Whitfield',file:''}],log:[{when:Date.now()-3*DAY,who:'Rosa Delgado',what:'Rules saved',to:'Time off notice: 3 days'}]}; save(); }
+ if(!d.cfg.onboarding) d.cfg.onboarding={plan:OB_PLAN.map(function(g){ return {phase:g.phase,group:g.group,who:/Paperwork|Required/.test(g.group)?'owner':/review|ride-along/i.test(g.group)?'supervisor':'tech',items:g.items.map(function(i){return i.slice();})}; }),signoff:OB_SIGN.map(function(i){return i.slice();})};
+ return d.cfg; }
+function hubCfg(){ var c=cfg(); return {branches:c.branches,rules:c.rules,docs:c.docs,tiles:c.tiles,tileOrder:c.tileOrder,map:c.map}; }
+function starts(){ var d=db(); if(!d.starts){ d.starts={'Avery Lindqvist':dateIn(-3100),'Rosa Delgado':dateIn(-1460),'Marcus Hale':dateIn(-910),'Dana Whitfield':dateIn(-610),'Luis Ortega':dateIn(-420),'Priya Nair':dateIn(-75),'Cody Brandt':dateIn(-300),'Jenna Sloan':dateIn(-40),'Nora Beck':dateIn(-200),'Theo Marsh':dateIn(-505)}; d.rev80={}; Object.keys(d.starts).forEach(function(n){ if(d.starts[n]<dateIn(-80)) d.rev80[n]=addD(d.starts[n],78); }); save(); } return d; }
+function isMgr(p){ return p.manager!==undefined?!!p.manager:/leadership/i.test(p.section||''); }
+function adminV(){ var d=starts(), c=cfg(); return {people:d.people.map(function(p){ return {name:p.name,role:p.role,section:p.section,branch:p.branch,phone:p.phone,email:p.email,notes:p.notes||'',start:d.starts[p.name]||'',manager:isMgr(p),status:p.status||''}; }),
+ tiles:c.tiles,tileOrder:c.tileOrder,emails:c.emails,defaultEmail:'manager@samplepest.example',licenseEmail:d.licEmail,branches:c.branches,alerts:c.alerts,rules:c.rules,docs:c.docs,versions:{},onboarding:c.onboarding,comm:c.comm,map:c.map,hasMaster:true,log:c.log.slice(0,50)}; }
+function alog(by,what,to){ cfg().log.unshift({when:Date.now(),who:by||'Manager',what:what,to:to||''}); }
+function pdf64(title,lines){ var t=['BT /F1 20 Tf 60 740 Td ('+title+') Tj ET'].concat(lines.map(function(l,i){ return 'BT /F1 12 Tf 60 '+(700-i*20)+' Td ('+l+') Tj ET'; })).join('\n');
+ var o=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>','<< /Length '+t.length+' >>\nstream\n'+t+'\nendstream','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+ var s='%PDF-1.4\n', off=[]; o.forEach(function(x,i){ off.push(s.length); s+=(i+1)+' 0 obj\n'+x+'\nendobj\n'; }); var x=s.length; s+='xref\n0 '+(o.length+1)+'\n0000000000 65535 f \n'+off.map(function(n){ return String(n).padStart(10,'0')+' 00000 n \n'; }).join('')+'trailer\n<< /Size '+(o.length+1)+' /Root 1 0 R >>\nstartxref\n'+x+'\n%%EOF';
+ return btoa(s); }
+function veh(){ var d=db(); if(!d.veh){ var T=d.T, n=Date.now();
+  function h(id,type,days,mi,shop,cost,notes){ return {id:id,type:type,date:dateIn(-days),mileage:mi,shop:shop,cost:Number(cost),notes:notes,by:'Rosa Delgado'}; }
+  d.veh={email:'',days:'30,14,7,0',docs:{},list:[
+   {id:'V1',name:'Truck 1',year:2021,make:'Ford',model:'F-150',plate:'SPL 101',plateState:'TX',vin:'',branch:'North Branch',driver:T[0],mileage:61240,regExpires:dateIn(140),insCompany:'Sample Mutual',policy:'SM-55021',insExpires:dateIn(22),oilMiles:5000,oilMonths:6,notes:'',active:true,
+    history:[h('S1','oil_change',62,57900,'Quick Lube','89.95',''),h('S2','tires',120,55200,'Tire Center','742.18','Four new all-terrain tires')],docs:[{id:'D1',kind:'registration',at:n-40*DAY,by:'Rosa Delgado'},{id:'D2',kind:'insurance',at:n-40*DAY,by:'Rosa Delgado'}]},
+   {id:'V2',name:'Truck 2',year:2019,make:'Chevrolet',model:'Silverado 1500',plate:'SPL 102',plateState:'TX',vin:'',branch:'North Branch',driver:T[1],mileage:98410,regExpires:dateIn(-4),insCompany:'Sample Mutual',policy:'SM-55022',insExpires:dateIn(200),oilMiles:5000,oilMonths:6,notes:'Check engine light came on once in the spring.',active:true,
+    history:[h('S3','oil_change',150,92800,'Quick Lube','94.50',''),h('S4','repair',190,91200,'Main Street Auto','418.00','Replaced front brake pads and rotors')],docs:[{id:'D3',kind:'insurance',at:n-90*DAY,by:'Rosa Delgado'}]},
+   {id:'V3',name:'Wildlife truck',year:2022,make:'Toyota',model:'Tacoma',plate:'SPL 201',plateState:'OK',vin:'',branch:'South Branch',driver:T[2],mileage:38760,regExpires:dateIn(260),insCompany:'Sample Mutual',policy:'SM-55031',insExpires:dateIn(260),oilMiles:5000,oilMonths:6,notes:'Ladder rack and trap boxes.',active:true,
+    history:[h('S5','oil_change',35,36900,'Quick Lube','79.95','')],docs:[{id:'D4',kind:'registration',at:n-35*DAY,by:'Rosa Delgado'},{id:'D5',kind:'insurance',at:n-35*DAY,by:'Rosa Delgado'}]},
+   {id:'V4',name:'Van 1',year:2018,make:'Ford',model:'Transit Connect',plate:'SPL 301',plateState:'OK',vin:'',branch:'East Branch',driver:T[4],mileage:121300,regExpires:dateIn(75),insCompany:'Sample Mutual',policy:'SM-55041',insExpires:dateIn(75),oilMiles:5000,oilMonths:6,notes:'',active:true,
+    history:[h('S6','oil_change',100,116800,'Quick Lube','84.95',''),h('S7','inspection',100,116800,'State inspection station','25.50','Passed')],docs:[]}]}; save(); }
+ return d.veh; }
+function vehV(){ var v=veh(), c=cfg(); v.list.forEach(function(x){ x.history.sort(function(a,b){ return a.date<b.date?1:a.date>b.date?-1:0; }); });
+ return {today:dateIn(0),vehicles:v.list,branches:Object.keys(c.branches).map(function(k){return c.branches[k];}),people:db().people.map(function(p){return p.name;})}; }
+function vFind(id){ return veh().list.filter(function(x){return x.id===id;})[0]; }
+function vNum(x){ if(x===''||x==null) return null; var n=Number(String(x).replace(/[$,\s]/g,'')); return isNaN(n)?null:n; }
+
 var F={
  getDirectory:function(){ return {people:db().people,sheetUrl:''}; },
  eqList:eq,
@@ -177,16 +211,16 @@ var F={
  strikePto:function(p,n,o){ pin(p); var d=sk(); d.sk.pto[n]={eligible:o.eligible,allowance:+o.allowance||0,prior:+o.prior||0}; save(); return skV(); },
  strikeMark:function(p,id,f){ pin(p); var d=sk(), r=d.sk.res.filter(function(x){return x.id===id;})[0]; r[f]=dateIn(0); save(); return skV(); },
  mgmtUnlock:function(p){ pin(p); return true; },
- obList:function(){ var d=hr(); return {plan:OB_PLAN,signoff:OB_SIGN,hires:d.ob}; },
+ obList:function(){ var d=hr(); var o=cfg().onboarding; return {plan:o.plan,signoff:o.signoff,hires:d.ob}; },
  obStart:function(x){ var d=hr(), id='H'+Date.now().toString(36); d.ob.push({id:id,tech:x.tech,branch:x.branch,start:x.start,supervisor:x.supervisor,status:'In progress',signed:'',file:'',checks:{}}); save(); return id; },
  obCheck:function(id,k,on,by){ var d=hr(), h=find(d.ob,id); if(on) h.checks[k]={by:by,at:dateIn(0)}; else delete h.checks[k]; save(); return h.checks; },
  obSign:function(x){ pin(x.pin); var d=hr(), h=find(d.ob,x.id); h.status='Signed off'; h.supervisor=x.supervisor; h.signed=new Date().toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'})+' at '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); save(); return true; },
  obRemove:function(id,p){ pin(p); var d=hr(); d.ob=d.ob.filter(function(h){return h.id!==id;}); save(); return true; },
  policySigned:function(n){ return hr().sigs.filter(function(s){return s.name===n;}); },
  policySign:function(x){ var d=hr(), w=Date.now(); d.sigs.push({name:x.name,policy:x.title,version:x.version,when:w,url:''}); save(); return {when:new Date(w).toLocaleDateString(),emailed:false}; },
- polStatus:function(){ var d=hr(); return {people:d.people,sigs:d.sigs}; },
+ polStatus:function(){ var d=hr(); return {people:d.people,sigs:d.sigs,docs:cfg().docs}; },
  toMine:function(n){ return hr().to.filter(function(r){return r.name===n;}); },
- toSubmit:function(x){ var d=hr(), s=new Date(x.start+'T12:00:00'), n=Math.round((s-new Date())/DAY), p=d.people.filter(function(q){return q.name===x.name;})[0]; d.to.unshift({id:'R'+Date.now().toString(36),name:x.name,branch:p?p.branch:'',start:x.start,end:x.end,hours:x.hours,pay:x.pay,status:'Pending',by:'',reason:'',notice:n,blocked:false}); save(); return {late:n<3}; },
+ toSubmit:function(x){ var d=hr(), s=new Date(x.start+'T12:00:00'), n=Math.round((s-new Date())/DAY), p=d.people.filter(function(q){return q.name===x.name;})[0]; d.to.unshift({id:'R'+Date.now().toString(36),name:x.name,branch:p?p.branch:'',start:x.start,end:x.end,hours:x.hours,pay:x.pay,status:'Pending',by:'',reason:'',notice:n,need:(+cfg().rules.noticeDays||3),blocked:false}); save(); return {late:n<(+cfg().rules.noticeDays||3)}; },
  toAdmin:function(){ return hr().to; },
  toDecide:function(p,id,st,by,why){ var d=hr(), r=find(d.to,id); r.status=st; r.by=by; r.reason=why||''; save(); return d.to; },
  toBlocked:function(p,id,v){ var d=hr(), r=find(d.to,id); r.blocked=v; save(); return d.to; },
@@ -197,8 +231,52 @@ var F={
  commAddSale:function(who,pw,s){ cpw(pw); var d=db(), c=comm(), a=Number(String(s.amount).replace(/[$,\s]/g,''))||0; c[who].current.unshift({date:s.date,svc:s.svc,cust:s.cust,amt:a,cur:Math.round(a*10)/100}); d.comm=c; save(); return commView(who); },
  manualData:function(p){ cpw(p); return {updated:new Date().toISOString(),canEdit:false,json:JSON.stringify(MANUAL)}; },
  manualSave:function(){ throw new Error('The sample manual can’t be changed in this demo.'); },
- sopData:function(){ return {updated:new Date().toISOString(),json:JSON.stringify(SOPS)}; }
+ sopData:function(){ return {updated:new Date().toISOString(),json:JSON.stringify(SOPS)}; },
+ hubConfig:function(){ return hubCfg(); },
+ adminData:function(p){ pin(p); return adminV(); },
+ adminSave:function(p,by,sec,v){ pin(p); var c=cfg(), d=db();
+  if(sec==='tiles'){ c.tiles=v.tiles||{}; c.tileOrder=v.order||{}; }
+  else if(sec==='emails'){ c.emails={timeOff:v.timeOff,fieldRoutes:v.fieldRoutes,strikes:v.strikes,reviews:v.reviews}; c.alerts=v.alerts||c.alerts; d.licEmail=v.licenseEmail; }
+  else if(sec==='rules'){ Object.keys(RULES0).forEach(function(k){ if(v[k]===undefined) return; c.rules[k]=(k==='exceptions'||k==='tempPin')?v[k]:(+v[k]||RULES0[k]); }); c.rules.exceptions=(c.rules.exceptions||[]).filter(function(x){return String(x).trim();}); }
+  else if(sec==='docs'||sec==='onboarding'||sec==='comm'||sec==='map'){ c[sec==='docs'?'docs':sec]=v; }
+  alog(by,{tiles:'Hub tiles saved',emails:'Emails saved',rules:'Rules saved',docs:'Documents saved',onboarding:'Onboarding checklist saved',comm:'Commission trackers saved',map:'Map settings saved'}[sec]||'Settings saved');
+  save(); return adminV(); },
+ adminPerson:function(p,by,x){ pin(p); var d=starts(), nm=String(x.name||'').trim(); if(!nm) throw new Error('Enter the employee’s name.');
+  var o=x.orig?d.people.filter(function(q){return q.name===x.orig;})[0]:null;
+  if(d.people.some(function(q){return q.name===nm&&q!==o;})) throw new Error('Someone already has that name.');
+  if(!o){ o={}; d.people.push(o); }
+  if(x.orig&&x.orig!==nm){ d.T=d.T.map(function(t){return t===x.orig?nm:t;}); if(d.starts[x.orig]){ d.starts[nm]=d.starts[x.orig]; delete d.starts[x.orig]; } }
+  Object.assign(o,{name:nm,role:x.role,section:x.section,branch:x.branch,phone:x.phone,email:x.email,notes:x.notes,manager:!!x.manager,status:x.status||''});
+  if(x.start) d.starts[nm]=x.start; else delete d.starts[nm];
+  alog(by,x.orig?'Employee updated':'Employee added',nm); save(); return adminV(); },
+ adminBranch:function(p,by,x){ pin(p); var c=cfg(), d=db(), code=String(x.code||'').trim().toUpperCase(), nm=String(x.name||'').trim();
+  if(!/^[A-Z]{2,4}$/.test(code)) throw new Error('Use a short code of 2 to 4 letters.'); if(!nm) throw new Error('Enter the branch name.');
+  var isNew=!c.branches[code]; c.branches[code]=nm; if(isNew){ c.alerts[code]=''; if(!d.stock[code]) d.stock[code]=[]; }
+  alog(by,isNew?'Branch added':'Branch renamed',nm); save(); return adminV(); },
+ adminSetPin:function(){ throw new Error('PINs can’t be changed in this demo. The demo PIN stays 1234.'); },
+ strikeReviewDone:function(p,n,by){ pin(p); var d=starts(); d.rev80[n]=dateIn(0); save(); return skV(); },
+ vehList:function(){ return vehV(); },
+ vehSave:function(x){ var v=veh(), nm=String(x.name||'').trim(), o=x.id?vFind(x.id):null;
+  if(v.list.some(function(y){return y.name.toLowerCase()===nm.toLowerCase()&&y!==o;})) throw new Error('Another vehicle already has that name.');
+  if(!o){ o={id:'V'+Date.now().toString(36),history:[],docs:[]}; v.list.push(o); }
+  Object.assign(o,{name:nm,year:vNum(x.year),make:x.make,model:x.model,plate:x.plate,plateState:x.plateState,vin:x.vin,branch:x.branch,driver:x.driver,mileage:vNum(x.mileage),regExpires:x.regExpires,insCompany:x.insCompany,policy:x.policy,insExpires:x.insExpires,oilMiles:vNum(x.oilMiles)||5000,oilMonths:vNum(x.oilMonths)||6,notes:x.notes,active:!!x.active});
+  save(); return vehV(); },
+ vehLog:function(r){ var o=vFind(r.vehicleId); if(!o) throw new Error('Vehicle not found.');
+  o.history.unshift({id:'S'+Date.now().toString(36),type:r.type,date:r.date,mileage:r.mileage,shop:r.shop,cost:r.cost,notes:r.notes,by:'Demo user'});
+  if(r.mileage!=null&&(o.mileage==null||r.mileage>o.mileage)) o.mileage=r.mileage; save(); return vehV(); },
+ vehDocAdd:function(x){ var v=veh(), o=vFind(x.vehicleId), id='D'+Date.now().toString(36);
+  o.docs.unshift({id:id,kind:x.kind,at:Date.now(),by:'Demo user'}); if(x.expires){ if(x.kind==='insurance') o.insExpires=x.expires; else o.regExpires=x.expires; }
+  if(String(x.data||'').length<1500000) v.docs[id]={type:x.type,data:x.data}; save(); return vehV(); },
+ vehDocGet:function(id){ var v=veh(); if(v.docs[id]) return v.docs[id]; var o=v.list.filter(function(y){return y.docs.some(function(z){return z.id===id;});})[0], k=o?o.docs.filter(function(z){return z.id===id;})[0].kind:'document';
+  return {type:'application/pdf',data:pdf64('Sample '+(k==='insurance'?'insurance card':'registration'),['Sample Pest Co. demo document',o?o.name+' - '+[o.year,o.make,o.model].join(' ')+' - Plate '+o.plate:'',o?(k==='insurance'?'Policy '+o.policy+' - Expires '+o.insExpires:'Registration expires '+o.regExpires):'','Not a real document. Each company uploads its own.'])}; },
+ vehDocDelete:function(p,id){ pin(p); var v=veh(); v.list.forEach(function(o){ o.docs=o.docs.filter(function(z){return z.id!==id;}); }); delete v.docs[id]; save(); return vehV(); },
+ vehServiceDelete:function(p,id){ pin(p); veh().list.forEach(function(o){ o.history=o.history.filter(function(h){return h.id!==id;}); }); save(); return vehV(); },
+ vehDelete:function(p,id){ pin(p); var v=veh(); v.list=v.list.filter(function(o){return o.id!==id;}); save(); return vehV(); },
+ vehReminders:function(){ var v=veh(); return {scheduled:!!v.email,email:v.email,days:v.days,fallback:'manager@samplepest.example'}; },
+ vehSettings:function(em,dy){ var v=veh(); v.email=em; v.days=String(dy).replace(/\s+/g,''); save(); return {scheduled:true,email:v.email,days:v.days,fallback:'manager@samplepest.example'}; },
+ vehTest:function(){ return {sent:0,note:'Demo only: no email was sent. The live version emails this reminder.'}; }
 };
+window.__demoCfg=function(){ return hubCfg(); };
 window.fetch=function(u,o){ var url=String(u&&u.url||u);
  if(url==='demo-api'){ var b=JSON.parse(o.body), r;
   try{ if(!F[b.fn]) throw new Error('Not in this demo.'); r={ok:true,data:JSON.parse(JSON.stringify(F[b.fn].apply(null,b.args||[])))}; }catch(e){ r={ok:false,error:e.message}; }
@@ -399,7 +477,19 @@ select{font:inherit;color:inherit;width:100%;min-height:48px;padding:0 12px;bord
 .linkbtn{display:flex;align-items:center;justify-content:center;text-decoration:none}
 .foot{margin-top:8px}
 .lock .btn+.btn{margin-top:8px}
+.clock{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:4px}
+.clock div{background:var(--sunk);border-radius:12px;padding:12px 6px;display:grid;justify-items:center;gap:2px}
+.clock b{font:700 2.6rem/1 var(--display);font-variant-numeric:tabular-nums;color:var(--ok)}
+.clock span{font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.vrow{display:grid;grid-template-columns:100px 1fr auto;gap:2px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.vk{font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.vd{font-size:.95rem;overflow-wrap:anywhere}
+.tag.warn{background:#f6e7cc;color:#a96d12}
+@media (prefers-color-scheme: dark){.tag.warn{background:#3a2d15;color:#e3a94c}}
+@media (max-width:520px){.vrow{grid-template-columns:1fr auto}.vrow .vd{grid-column:1/-1;grid-row:2}}
 </style>
+<script src="../hub-config.js"></script>
+<script>window.hubCached=window.hubCached||function(key,get,use){/* show the saved copy now, then the fresh one if it changed */var k='hc.'+key,old=null;try{old=localStorage.getItem(k);}catch(e){}if(old){try{use(JSON.parse(old),false);}catch(e){old=null;}}return get().then(function(d){var s=JSON.stringify(d);try{localStorage.setItem(k,s);}catch(e){}if(s!==old)use(d,true);return d;},function(e){if(!old)throw e;});};</script>
 </head>
 <body>
 <div id="app"></div>
@@ -417,7 +507,8 @@ function nice(d){var x=dt(d);return x?x.toLocaleDateString([], {month:'short',da
 function span(r){return r.start===r.end?nice(r.start):nice(r.start)+' to '+nice(r.end);}
 function plural(n,w){return n+' '+w+(n===1?'':'s');}
 function head(){return '<a class="back" href="../index.html">← All tools</a><div class="brand"><img src="'+MARK+'" alt=""><div class="txt"><b>My Dashboard</b><span class="eyebrow">'+esc(S.d?S.d.name:'Your attendance and time off')+'</span></div></div>';}
-function dots(n){var h='<span class="dots" role="img" aria-label="'+n+' of 3 active strikes">';for(var i=0;i<3;i++)h+='<i class="'+(i<n?'on':'')+'"></i>';return h+'</span>';}
+function dots(n){var h='<span class="dots" role="img" aria-label="'+n+' of '+RR().resetAt+' active strikes">';for(var i=0;i<RR().resetAt;i++)h+='<i class="'+(i<n?'on':'')+'"></i>';return h+'</span>';}
+function RR(){return (S.d&&S.d.rules)||hubRules();}
 function dis(){return S.busy?' disabled':'';}
 function strike(i){var st=i.state,lab=st==='Active'?(i.live<i.count?i.live+' of '+i.count+' active':'Active'):st==='Reset'?'Cleared at reset':st,h='<div class="card req"><div class="row"><b>'+esc(i.type)+'</b><span class="tag '+(st==='Active'?'bad':'')+'">'+esc(lab)+'</span></div><span class="meta">'+esc(nice(i.incidentDate))+' · '+plural(i.count,'strike')+'</span>';
   if(i.note)h+='<span class="meta">'+esc(i.note)+'</span>';
@@ -425,15 +516,43 @@ function strike(i){var st=i.state,lab=st==='Active'?(i.live<i.count?i.live+' of 
   if(i.disputed)h+='<span class="meta">Disputed '+esc(nice(i.disputed))+(i.disputeResult?': '+(i.disputeResult==='Upheld'?'strike stands':'overturned'):', waiting on the owner')+'</span>';
   else if(i.disputeBy&&S.d.today<=i.disputeBy&&st!=='Overturned')h+='<span class="meta">To dispute this, talk to the owner by '+esc(nice(i.disputeBy))+'</span>';
   return h+'</div>';}
-function reset(r){if(r.donuts&&r.meeting&&(!r.pip||r.pipDone))return '';var h='<div class="card req"><div class="row"><b>Reached 3 strikes</b><span class="tag">'+esc(nice(r.reached))+'</span></div><div class="step '+(r.donuts?'done':'')+'"><span>'+(r.donuts?'✓ ':'')+'Complete the team make-good step</span></div><div class="step '+(r.meeting?'done':'')+'"><span>'+(r.meeting?'✓ ':'')+'Reset meeting with a manager'+(r.meeting?'':'<small>By '+esc(nice(r.meetingDue))+'</small>')+'</span></div>';
+function reset(r){if(r.donuts&&r.meeting&&(!r.pip||r.pipDone))return '';var h='<div class="card req"><div class="row"><b>Reached the strike limit</b><span class="tag">'+esc(nice(r.reached))+'</span></div><div class="step '+(r.donuts?'done':'')+'"><span>'+(r.donuts?'✓ ':'')+'Complete the team make-good step</span></div><div class="step '+(r.meeting?'done':'')+'"><span>'+(r.meeting?'✓ ':'')+'Reset meeting with a manager'+(r.meeting?'':'<small>By '+esc(nice(r.meetingDue))+'</small>')+'</span></div>';
   if(r.pip)h+='<div class="warnbox"><b>Second time within 12 months.</b> The next step is a formal performance improvement plan. Talk to your manager.</div>';return h+'</div>';}
 function reqCard(r){return '<div class="card req"><div class="row"><b>'+esc(span(r))+'</b><span class="st '+esc(r.status)+'">'+esc(r.status)+'</span></div><span class="meta">'+[r.hours?r.hours+' hours':'',r.pay].filter(Boolean).map(esc).join(' · ')+'</span>'+(r.reason?'<span class="meta"><b>Reason:</b> '+esc(r.reason)+'</span>':'')+delBits(r)+'</div>';}
-function delBits(r){if(r.status!=='Pending')return '';if(S.delr===r.id)return (+r.notice<3?'<div class="warnbox">This request had under 3 days\' notice. A manager can still review it for a strike after you delete it.</div>':'')+'<div class="acts"><button class="btn deny" data-a="delyes" data-r="'+esc(r.id)+'"'+dis()+'>Yes, delete request</button><button class="btn deny" data-a="delno">Keep it</button></div>';return '<div class="acts"><button class="btn deny" data-a="delask" data-r="'+esc(r.id)+'"'+dis()+'>Delete request</button></div>';}
+function delBits(r){if(r.status!=='Pending')return '';if(S.delr===r.id)return (+r.notice<(+r.need||3)?'<div class="warnbox">This request had under '+(+r.need||3)+' days\' notice. A manager can still review it for a strike after you delete it.</div>':'')+'<div class="acts"><button class="btn deny" data-a="delyes" data-r="'+esc(r.id)+'"'+dis()+'>Yes, delete request</button><button class="btn deny" data-a="delno">Keep it</button></div>';return '<div class="acts"><button class="btn deny" data-a="delask" data-r="'+esc(r.id)+'"'+dis()+'>Delete request</button></div>';}
 function alertErr(m){S.msg=m;render();}
+function addMo(s,n){var y=new Date(s.getFullYear(),s.getMonth()+n,1),last=new Date(y.getFullYear(),y.getMonth()+1,0).getDate();y.setDate(Math.min(s.getDate(),last));return y;}
+function tenure(s,t){var a=dt(s),b=dt(t),k=(b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth();if(addMo(a,k)>b)k--;return {y:Math.floor(k/12),m:k%12,d:Math.round((b-addMo(a,k))/864e5)};}
+function todayMT(){try{var f=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Denver',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());if(dt(f))return f;}catch(e){}return S.d.today;}
+function clockCells(){var x=tenure(S.d.startDate,todayMT()),c=function(n,w){return '<div><b>'+n+'</b><span>'+w+(n===1?'':'s')+'</span></div>';};return c(x.y,'Year')+c(x.m,'Month')+c(x.d,'Day');}
+function clockCard(){var s=S.d.startDate;if(!s||!dt(s))return '';if(todayMT()<s)return '<section class="card"><h2>Time with the company</h2><span class="meta">Your first day is '+esc(nice(s))+'.</span></section>';return '<section class="card"><h2>Time with the company</h2><div class="clock" id="clk" role="timer">'+clockCells()+'</div><span class="meta">Since '+esc(nice(s))+'</span></section>';}
+function tick(){var el=document.getElementById('clk');if(el&&S.d&&S.d.startDate){var n=clockCells();if(el.innerHTML!==n)el.innerHTML=n;}}
+setInterval(tick,60000);document.addEventListener('visibilitychange',function(){if(!document.hidden)tick();});
+/* Vehicles assigned to me: the vehicle's "Assigned tech" (Driver) matches my Directory name. */
+function loadVeh(){if(!S.d)return;hubCached('veh',function(){return api('vehList',[]);},function(d){S.veh=d;if(S.d)render();}).catch(function(){});}
+function vDays(s,today){var a=dt(s),b=dt(today);return a&&b?Math.round((a-b)/864e5):null;}
+function vExp(s,today){var n=s?vDays(s,today):null;if(n===null)return ['Not entered','','Not set'];if(n<0)return ['Expired '+nice(s),'bad','Expired'];if(n<=30)return ['Expires '+nice(s),'warn',n===0?'Today':plural(n,'day')];return ['Expires '+nice(s),'ok','OK'];}
+function vOil(v,today){var last=(v.history||[]).filter(function(h){return h.type==='oil_change';})[0];if(!last)return ['No oil change logged yet','','No record'];
+  var p=last.date.split('-'),m=v.oilMonths||6,d=new Date(+p[0],+p[1]-1+m,+p[2]);if(d.getDate()!==+p[2])d=new Date(+p[0],+p[1]+m,0);
+  var nd=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),nm=last.mileage!=null?last.mileage+(v.oilMiles||5000):null,ml=nm!=null&&v.mileage!=null?nm-v.mileage:null,dl=vDays(nd,today);
+  var x='Next by '+nice(nd)+(nm!=null?' or '+nm.toLocaleString()+' mi':'');if(dl<0||(ml!=null&&ml<=0))return [x,'bad','Overdue'];if(dl<=30||(ml!=null&&ml<=500))return [x,'warn','Due soon'];return [x,'ok','OK'];}
+function vehCards(){var V=S.veh;if(!V||!S.d)return '';var me=String(S.d.name||'').trim().toLowerCase(),mine=(V.vehicles||[]).filter(function(v){return v.active&&String(v.driver||'').trim().toLowerCase()===me;});if(!mine.length)return '';
+  return '<h2 class="sec">'+(mine.length===1?'My vehicle':'My vehicles')+'</h2>'+mine.map(function(v){
+    var rows=[['Registration',vExp(v.regExpires,V.today)],['Insurance',vExp(v.insExpires,V.today)],['Oil change',vOil(v,V.today)]].map(function(r){return '<div class="vrow"><span class="vk">'+r[0]+'</span><span class="vd">'+esc(r[1][0])+'</span><span class="tag '+r[1][1]+'">'+esc(r[1][2])+'</span></div>';}).join('');
+    var doc=function(k,label){var d=(v.docs||[]).filter(function(x){return x.kind===k;})[0];return d?'<button class="btn deny" data-a="vdoc" data-id="'+esc(d.id)+'">'+label+'</button>':'';};
+    var btns=doc('insurance','Insurance card')+doc('registration','Registration');
+    return '<section class="card"><div class="row"><div><h2>'+esc(v.name)+'</h2><span class="meta">'+esc([[v.year,v.make,v.model].filter(Boolean).join(' '),v.plate].filter(Boolean).join(' · '))+'</span></div></div>'+rows+
+      (btns?'':'<span class="meta">No insurance or registration uploaded yet.</span>')+'<div class="acts">'+btns+'<a class="btn deny linkbtn" href="../vehicles/index.html#'+encodeURIComponent(v.id)+'">Vehicle details</a></div></section>';}).join('');}
+function openDoc(b){var w=null;try{w=window.open('','_blank');if(w)w.document.write('<p style="font:16px sans-serif;padding:20px">Opening…</p>');}catch(x){}
+  var label=b.textContent;b.disabled=true;b.textContent='Opening…';
+  api('vehDocGet',[b.dataset.id]).then(function(r){b.disabled=false;b.textContent=label;var bin=atob(r.data),u8=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+    var url=URL.createObjectURL(new Blob([u8],{type:r.type}));if(w&&!w.closed)w.location.href=url;else location.href=url;})
+    .catch(function(x){b.disabled=false;b.textContent=label;if(w)try{w.close();}catch(y){}alert(String(x.message||x));});}
 function dash(){var d=S.d,live=d.strikes.filter(function(i){return i.state==='Active';}),old=d.strikes.filter(function(i){return i.state!=='Active';}),h=head();
   if(S.msg)h+='<p class="okmsg">'+esc(S.msg)+'</p>';
-  h+='<section class="card"><div class="row"><div><h2>Attendance strikes</h2><span class="meta">'+plural(d.active,'active strike')+' out of 3</span></div>'+dots(d.active)+'</div>';
-  if(d.active&&d.removeOn)h+='<span class="meta">'+(d.removable?'You\'ve gone 90 days with no new strikes. Your manager may remove your oldest strike.':'Stay strike-free until '+esc(nice(d.removeOn))+' and your oldest strike may come off early.')+'</span>';
+  h+=clockCard();h+=vehCards();
+  h+='<section class="card"><div class="row"><div><h2>Attendance strikes</h2><span class="meta">'+plural(d.active,'active strike')+' out of '+RR().resetAt+'</span></div>'+dots(d.active)+'</div>';
+  if(d.active&&d.removeOn)h+='<span class="meta">'+(d.removable?'You\'ve gone '+RR().cleanDays+' days with no new strikes. Your manager may remove your oldest strike.':'Stay strike-free until '+esc(nice(d.removeOn))+' and your oldest strike may come off early.')+'</span>';
   h+='</section>'+d.resets.map(reset).join('');
   if(live.length)h+='<div class="list">'+live.map(strike).join('')+'</div>';
   var q=d.pto||{};if(q.eligible)h+='<section class="card"><div class="row"><div><h2>PTO '+esc(q.year)+'</h2><span class="meta">'+plural(q.left,'hour')+' left of '+q.allowance+'</span></div></div><span class="meta">'+plural(q.used+q.prior,'hour')+' used · '+plural(q.scheduled,'hour')+' scheduled · '+plural(q.pending,'hour')+' waiting on approval</span><span class="meta">Unused PTO doesn\'t carry over to next year.</span></section>';
@@ -445,16 +564,16 @@ function login(){return head()+'<form class="lock" id="lf"><label class="fld">Yo
 function render(){app.innerHTML=S.must?newPin('Create your PIN','Welcome! Create a PIN only you know before you continue. You\'ll use it every time you sign in.'):S.change?newPin('Change your PIN',''):S.d?dash():login();}
 app.addEventListener('submit',function(e){e.preventDefault();
   if(e.target.id==='lf'){var n=document.getElementById('nm').value,p=document.getElementById('pn').value.trim();S.name=n;if(!n||!p){S.err='Pick your name and enter your PIN.';render();return;}S.busy=true;S.err='';render();
-    api('myData',[n,p]).then(function(d){S.busy=false;S.pin=p;if(d.mustChange)S.must=true;else S.d=d;try{localStorage.setItem('to.name',n);}catch(x){}render();window.scrollTo(0,0);}).catch(function(x){S.busy=false;S.err=/fetch|network/i.test(String(x.message))?'Could not connect. Try again.':String(x.message||x);render();});}
+    api('myData',[n,p]).then(function(d){S.busy=false;S.pin=p;if(d.mustChange)S.must=true;else S.d=d;try{localStorage.setItem('to.name',n);}catch(x){}render();loadVeh();window.scrollTo(0,0);}).catch(function(x){S.busy=false;S.err=/fetch|network/i.test(String(x.message))?'Could not connect. Try again.':String(x.message||x);render();});}
   if(e.target.id==='nf'){var a=document.getElementById('n1').value.trim(),b=document.getElementById('n2').value.trim();if(a!==b){S.err='Those PINs don\'t match.';render();return;}S.busy=true;S.err='';render();
-    api('myPin',[S.name,S.pin,a]).then(function(d){S.busy=false;S.pin=a;S.d=d;S.must=false;S.change=false;S.msg='PIN saved for this visit. The demo PIN is still 1234.';render();}).catch(function(x){S.busy=false;S.err=String(x.message||x);render();});}});
+    api('myPin',[S.name,S.pin,a]).then(function(d){S.busy=false;S.pin=a;S.d=d;S.must=false;S.change=false;S.msg='PIN saved for this visit. The demo PIN is still 1234.';render();loadVeh();}).catch(function(x){S.busy=false;S.err=String(x.message||x);render();});}});
 app.addEventListener('click',function(e){var t=e.target.closest('button');if(!t)return;var a=t.dataset.a;
   if(a==='delask'){S.delr=t.dataset.r;S.msg='';render();}if(a==='delno'){S.delr='';render();}
   if(a==='delyes'){S.busy=true;S.err='';render();api('myRequestDelete',[S.name,S.pin,t.dataset.r]).then(function(d){S.busy=false;S.d=d;S.delr='';S.msg='Request deleted.';render();}).catch(function(x){S.busy=false;S.delr='';alertErr(String(x.message||x));});}
-  if(a==='out'){S.d=null;S.pin='';S.msg='';S.err='';render();}
+  if(a==='vdoc')openDoc(t);if(a==='out'){S.veh=null;S.d=null;S.pin='';S.msg='';S.err='';render();}
   if(a==='change'){S.change=true;S.msg='';S.err='';render();}if(a==='nochange'){S.change=false;S.err='';render();}});
 render();
-api('getDirectory',[]).then(function(d){var skip=/vendor|supplier|partner/i,seen={};S.people=d.people.filter(function(p){return !skip.test(p.section||'');}).map(function(p){return p.name;}).filter(function(n){if(seen[n])return false;seen[n]=1;return true;}).sort();if(!S.d&&!S.must&&!S.change)render();}).catch(function(){S.err='Could not load names. Check your connection and try again.';render();});
+hubCached('dir',function(){return api('getDirectory',[]);},function(d){var skip=/vendor|supplier|partner/i,seen={};S.people=d.people.filter(function(p){return !skip.test(p.section||'');}).map(function(p){return p.name;}).filter(function(n){if(seen[n])return false;seen[n]=1;return true;}).sort();if(!S.d&&!S.must&&!S.change)render();}).catch(function(){S.err='Could not load names. Check your connection and try again.';render();});
 })();
 </script>
 </body>

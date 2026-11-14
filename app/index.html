@@ -114,15 +114,49 @@ function sk(){ var d=hr(); if(!d.sk){ d.sk={inc:[
  {incident:'I3',employee:'Dana Whitfield',branch:'North Branch',type:'Late notice',count:1,live:1,incidentDate:dateIn(-95),note:'',by:'Rosa Delgado',state:'Active',expires:dateIn(270),shared:dateIn(-94),sharedHow:'Email',shareBy:dateIn(-93),disputeBy:dateIn(-88),disputed:'',disputeResult:''}],res:[],rev:{},pto:{}}; save(); } return d; }
 function ptoOf(d,n){ var c=d.sk.pto[n]||{eligible:'Yes',allowance:40,prior:0}, y=new Date().getFullYear(), u=0, sc=0, pe=0, t=dateIn(0); d.to.forEach(function(r){ if(r.name!==n||r.pay!=='Paid') return; var h=+r.hours||0; if(r.status==='Pending') pe+=h; else if(r.status==='Approved'){ if(r.start>t) sc+=h; else u+=h; } }); var al=+c.allowance||0, pr=+c.prior||0; return {year:y,eligible:c.eligible==='Yes',allowance:al,prior:pr,used:u,scheduled:sc,pending:pe,left:Math.max(0,al-pr-u-sc-pe)}; }
 function skP(d,p){ var l=d.sk.inc.filter(function(i){return i.employee===p.name&&i.count;}), a=l.filter(function(i){return i.state==='Active';}), act=a.reduce(function(s,i){return s+i.live;},0), last=l.reduce(function(m,i){return i.incidentDate>m?i.incidentDate:m;},''), on=last?addD(last,90):'';
- return {name:p.name,branch:p.branch,email:p.email,active:act,resets12:d.sk.res.filter(function(r){return r.employee===p.name;}).length,removeOn:act?on:'',removable:!!(act&&on<=dateIn(0)),hasPin:false,pto:ptoOf(d,p.name)}; }
+ return {name:p.name,branch:p.branch,email:p.email,active:act,resets12:d.sk.res.filter(function(r){return r.employee===p.name;}).length,removeOn:act?on:'',removable:!!(act&&on<=dateIn(0)),hasPin:true,start:(starts().starts[p.name]||''),reviewDone:(d.rev80&&d.rev80[p.name])||'',pto:ptoOf(d,p.name)}; }
 function skV(){ var d=sk(), team=d.people.map(function(p){return skP(d,p);}), t=dateIn(0), todo=[];
  d.to.forEach(function(r){ if(+r.notice<3&&!d.sk.rev[r.id]) todo.push({k:'review',r:r}); });
  d.sk.inc.forEach(function(i){ if(i.count&&!i.shared&&i.state==='Active') todo.push({k:'share',i:i,late:i.shareBy<t}); if(i.disputed&&!i.disputeResult) todo.push({k:'dispute',i:i}); });
  d.sk.res.forEach(function(r){ if(!r.donuts||!r.meeting||(r.pip&&!r.pipDone)) todo.push({k:'reset',r:r,late:r.meetingDue<t}); });
  team.forEach(function(p){ if(p.removable) todo.push({k:'clean',p:p}); });
- return {today:t,exc:['Family emergency','Illness','Legally protected leave','Manager approved in advance'],team:team,incidents:d.sk.inc.slice().reverse(),resets:d.sk.res,todo:todo}; }
-function myV(n){ var d=sk(), p=d.people.filter(function(x){return x.name===n;})[0]||{name:n}, s=skP(d,p); return {name:n,today:dateIn(0),active:s.active,removeOn:s.removeOn,removable:s.removable,strikes:d.sk.inc.filter(function(i){return i.employee===n&&i.count;}).reverse(),resets:d.sk.res.filter(function(r){return r.employee===n;}),pto:s.pto,requests:d.to.filter(function(r){return r.name===n;}),mustChange:false}; }
+ var R=cfg().rules; team.forEach(function(p){ if(!p.start||p.reviewDone) return; var due=addD(p.start,+R.reviewDays||80), days=Math.round((new Date(due+'T12:00:00')-new Date(t+'T12:00:00'))/DAY); if(days<=(+R.reviewAhead||7)) todo.push({k:'hire80',name:p.name,branch:p.branch,start:p.start,due:due,days:days,late:days<0}); });
+ return {today:t,rules:R,exc:R.exceptions,starts:{total:team.length,entered:team.filter(function(p){return p.start;}).length,bad:[],url:''},team:team,incidents:d.sk.inc.slice().reverse(),resets:d.sk.res,todo:todo}; }
+function myV(n){ var d=sk(), p=d.people.filter(function(x){return x.name===n;})[0]||{name:n}, s=skP(d,p); return {name:n,today:dateIn(0),active:s.active,removeOn:s.removeOn,removable:s.removable,strikes:d.sk.inc.filter(function(i){return i.employee===n&&i.count;}).reverse(),resets:d.sk.res.filter(function(r){return r.employee===n;}),pto:s.pto,requests:d.to.filter(function(r){return r.name===n;}),mustChange:false,startDate:(starts().starts[n]||''),rules:cfg().rules}; }
 function fi(d,id){ return d.sk.inc.filter(function(i){return i.incident===id;})[0]; }
+/* Admin settings, start dates and vehicles (sample data). */
+var RULES0={reviewDays:80,reviewAhead:7,unlockMin:30,ptoHours:40,noticeDays:3,ncnsStrikes:2,resetAt:3,expireMonths:12,cleanDays:90,disputeDays:5,shareDays:2,tempPin:'1234',exceptions:['Family emergency','Illness','Legally protected leave','Manager approved in advance']};
+function cfg(){ var d=db(); if(!d.cfg){ d.cfg={branches:{IF:'North Branch',WY:'South Branch',BZ:'East Branch'},rules:JSON.parse(JSON.stringify(RULES0)),docs:{},tiles:{},tileOrder:{},map:{provider:'esri',dailyTiles:0},
+  emails:{timeOff:'',fieldRoutes:'',strikes:'',reviews:''},alerts:{IF:'',WY:'',BZ:''},comm:[{name:'Theo Marsh',file:''},{name:'Dana Whitfield',file:''}],log:[{when:Date.now()-3*DAY,who:'Rosa Delgado',what:'Rules saved',to:'Time off notice: 3 days'}]}; save(); }
+ if(!d.cfg.onboarding) d.cfg.onboarding={plan:OB_PLAN.map(function(g){ return {phase:g.phase,group:g.group,who:/Paperwork|Required/.test(g.group)?'owner':/review|ride-along/i.test(g.group)?'supervisor':'tech',items:g.items.map(function(i){return i.slice();})}; }),signoff:OB_SIGN.map(function(i){return i.slice();})};
+ return d.cfg; }
+function hubCfg(){ var c=cfg(); return {branches:c.branches,rules:c.rules,docs:c.docs,tiles:c.tiles,tileOrder:c.tileOrder,map:c.map}; }
+function starts(){ var d=db(); if(!d.starts){ d.starts={'Avery Lindqvist':dateIn(-3100),'Rosa Delgado':dateIn(-1460),'Marcus Hale':dateIn(-910),'Dana Whitfield':dateIn(-610),'Luis Ortega':dateIn(-420),'Priya Nair':dateIn(-75),'Cody Brandt':dateIn(-300),'Jenna Sloan':dateIn(-40),'Nora Beck':dateIn(-200),'Theo Marsh':dateIn(-505)}; d.rev80={}; Object.keys(d.starts).forEach(function(n){ if(d.starts[n]<dateIn(-80)) d.rev80[n]=addD(d.starts[n],78); }); save(); } return d; }
+function isMgr(p){ return p.manager!==undefined?!!p.manager:/leadership/i.test(p.section||''); }
+function adminV(){ var d=starts(), c=cfg(); return {people:d.people.map(function(p){ return {name:p.name,role:p.role,section:p.section,branch:p.branch,phone:p.phone,email:p.email,notes:p.notes||'',start:d.starts[p.name]||'',manager:isMgr(p),status:p.status||''}; }),
+ tiles:c.tiles,tileOrder:c.tileOrder,emails:c.emails,defaultEmail:'manager@samplepest.example',licenseEmail:d.licEmail,branches:c.branches,alerts:c.alerts,rules:c.rules,docs:c.docs,versions:{},onboarding:c.onboarding,comm:c.comm,map:c.map,hasMaster:true,log:c.log.slice(0,50)}; }
+function alog(by,what,to){ cfg().log.unshift({when:Date.now(),who:by||'Manager',what:what,to:to||''}); }
+function pdf64(title,lines){ var t=['BT /F1 20 Tf 60 740 Td ('+title+') Tj ET'].concat(lines.map(function(l,i){ return 'BT /F1 12 Tf 60 '+(700-i*20)+' Td ('+l+') Tj ET'; })).join('\n');
+ var o=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>','<< /Length '+t.length+' >>\nstream\n'+t+'\nendstream','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+ var s='%PDF-1.4\n', off=[]; o.forEach(function(x,i){ off.push(s.length); s+=(i+1)+' 0 obj\n'+x+'\nendobj\n'; }); var x=s.length; s+='xref\n0 '+(o.length+1)+'\n0000000000 65535 f \n'+off.map(function(n){ return String(n).padStart(10,'0')+' 00000 n \n'; }).join('')+'trailer\n<< /Size '+(o.length+1)+' /Root 1 0 R >>\nstartxref\n'+x+'\n%%EOF';
+ return btoa(s); }
+function veh(){ var d=db(); if(!d.veh){ var T=d.T, n=Date.now();
+  function h(id,type,days,mi,shop,cost,notes){ return {id:id,type:type,date:dateIn(-days),mileage:mi,shop:shop,cost:Number(cost),notes:notes,by:'Rosa Delgado'}; }
+  d.veh={email:'',days:'30,14,7,0',docs:{},list:[
+   {id:'V1',name:'Truck 1',year:2021,make:'Ford',model:'F-150',plate:'SPL 101',plateState:'TX',vin:'',branch:'North Branch',driver:T[0],mileage:61240,regExpires:dateIn(140),insCompany:'Sample Mutual',policy:'SM-55021',insExpires:dateIn(22),oilMiles:5000,oilMonths:6,notes:'',active:true,
+    history:[h('S1','oil_change',62,57900,'Quick Lube','89.95',''),h('S2','tires',120,55200,'Tire Center','742.18','Four new all-terrain tires')],docs:[{id:'D1',kind:'registration',at:n-40*DAY,by:'Rosa Delgado'},{id:'D2',kind:'insurance',at:n-40*DAY,by:'Rosa Delgado'}]},
+   {id:'V2',name:'Truck 2',year:2019,make:'Chevrolet',model:'Silverado 1500',plate:'SPL 102',plateState:'TX',vin:'',branch:'North Branch',driver:T[1],mileage:98410,regExpires:dateIn(-4),insCompany:'Sample Mutual',policy:'SM-55022',insExpires:dateIn(200),oilMiles:5000,oilMonths:6,notes:'Check engine light came on once in the spring.',active:true,
+    history:[h('S3','oil_change',150,92800,'Quick Lube','94.50',''),h('S4','repair',190,91200,'Main Street Auto','418.00','Replaced front brake pads and rotors')],docs:[{id:'D3',kind:'insurance',at:n-90*DAY,by:'Rosa Delgado'}]},
+   {id:'V3',name:'Wildlife truck',year:2022,make:'Toyota',model:'Tacoma',plate:'SPL 201',plateState:'OK',vin:'',branch:'South Branch',driver:T[2],mileage:38760,regExpires:dateIn(260),insCompany:'Sample Mutual',policy:'SM-55031',insExpires:dateIn(260),oilMiles:5000,oilMonths:6,notes:'Ladder rack and trap boxes.',active:true,
+    history:[h('S5','oil_change',35,36900,'Quick Lube','79.95','')],docs:[{id:'D4',kind:'registration',at:n-35*DAY,by:'Rosa Delgado'},{id:'D5',kind:'insurance',at:n-35*DAY,by:'Rosa Delgado'}]},
+   {id:'V4',name:'Van 1',year:2018,make:'Ford',model:'Transit Connect',plate:'SPL 301',plateState:'OK',vin:'',branch:'East Branch',driver:T[4],mileage:121300,regExpires:dateIn(75),insCompany:'Sample Mutual',policy:'SM-55041',insExpires:dateIn(75),oilMiles:5000,oilMonths:6,notes:'',active:true,
+    history:[h('S6','oil_change',100,116800,'Quick Lube','84.95',''),h('S7','inspection',100,116800,'State inspection station','25.50','Passed')],docs:[]}]}; save(); }
+ return d.veh; }
+function vehV(){ var v=veh(), c=cfg(); v.list.forEach(function(x){ x.history.sort(function(a,b){ return a.date<b.date?1:a.date>b.date?-1:0; }); });
+ return {today:dateIn(0),vehicles:v.list,branches:Object.keys(c.branches).map(function(k){return c.branches[k];}),people:db().people.map(function(p){return p.name;})}; }
+function vFind(id){ return veh().list.filter(function(x){return x.id===id;})[0]; }
+function vNum(x){ if(x===''||x==null) return null; var n=Number(String(x).replace(/[$,\s]/g,'')); return isNaN(n)?null:n; }
+
 var F={
  getDirectory:function(){ return {people:db().people,sheetUrl:''}; },
  eqList:eq,
@@ -177,16 +211,16 @@ var F={
  strikePto:function(p,n,o){ pin(p); var d=sk(); d.sk.pto[n]={eligible:o.eligible,allowance:+o.allowance||0,prior:+o.prior||0}; save(); return skV(); },
  strikeMark:function(p,id,f){ pin(p); var d=sk(), r=d.sk.res.filter(function(x){return x.id===id;})[0]; r[f]=dateIn(0); save(); return skV(); },
  mgmtUnlock:function(p){ pin(p); return true; },
- obList:function(){ var d=hr(); return {plan:OB_PLAN,signoff:OB_SIGN,hires:d.ob}; },
+ obList:function(){ var d=hr(); var o=cfg().onboarding; return {plan:o.plan,signoff:o.signoff,hires:d.ob}; },
  obStart:function(x){ var d=hr(), id='H'+Date.now().toString(36); d.ob.push({id:id,tech:x.tech,branch:x.branch,start:x.start,supervisor:x.supervisor,status:'In progress',signed:'',file:'',checks:{}}); save(); return id; },
  obCheck:function(id,k,on,by){ var d=hr(), h=find(d.ob,id); if(on) h.checks[k]={by:by,at:dateIn(0)}; else delete h.checks[k]; save(); return h.checks; },
  obSign:function(x){ pin(x.pin); var d=hr(), h=find(d.ob,x.id); h.status='Signed off'; h.supervisor=x.supervisor; h.signed=new Date().toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'})+' at '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); save(); return true; },
  obRemove:function(id,p){ pin(p); var d=hr(); d.ob=d.ob.filter(function(h){return h.id!==id;}); save(); return true; },
  policySigned:function(n){ return hr().sigs.filter(function(s){return s.name===n;}); },
  policySign:function(x){ var d=hr(), w=Date.now(); d.sigs.push({name:x.name,policy:x.title,version:x.version,when:w,url:''}); save(); return {when:new Date(w).toLocaleDateString(),emailed:false}; },
- polStatus:function(){ var d=hr(); return {people:d.people,sigs:d.sigs}; },
+ polStatus:function(){ var d=hr(); return {people:d.people,sigs:d.sigs,docs:cfg().docs}; },
  toMine:function(n){ return hr().to.filter(function(r){return r.name===n;}); },
- toSubmit:function(x){ var d=hr(), s=new Date(x.start+'T12:00:00'), n=Math.round((s-new Date())/DAY), p=d.people.filter(function(q){return q.name===x.name;})[0]; d.to.unshift({id:'R'+Date.now().toString(36),name:x.name,branch:p?p.branch:'',start:x.start,end:x.end,hours:x.hours,pay:x.pay,status:'Pending',by:'',reason:'',notice:n,blocked:false}); save(); return {late:n<3}; },
+ toSubmit:function(x){ var d=hr(), s=new Date(x.start+'T12:00:00'), n=Math.round((s-new Date())/DAY), p=d.people.filter(function(q){return q.name===x.name;})[0]; d.to.unshift({id:'R'+Date.now().toString(36),name:x.name,branch:p?p.branch:'',start:x.start,end:x.end,hours:x.hours,pay:x.pay,status:'Pending',by:'',reason:'',notice:n,need:(+cfg().rules.noticeDays||3),blocked:false}); save(); return {late:n<(+cfg().rules.noticeDays||3)}; },
  toAdmin:function(){ return hr().to; },
  toDecide:function(p,id,st,by,why){ var d=hr(), r=find(d.to,id); r.status=st; r.by=by; r.reason=why||''; save(); return d.to; },
  toBlocked:function(p,id,v){ var d=hr(), r=find(d.to,id); r.blocked=v; save(); return d.to; },
@@ -197,8 +231,52 @@ var F={
  commAddSale:function(who,pw,s){ cpw(pw); var d=db(), c=comm(), a=Number(String(s.amount).replace(/[$,\s]/g,''))||0; c[who].current.unshift({date:s.date,svc:s.svc,cust:s.cust,amt:a,cur:Math.round(a*10)/100}); d.comm=c; save(); return commView(who); },
  manualData:function(p){ cpw(p); return {updated:new Date().toISOString(),canEdit:false,json:JSON.stringify(MANUAL)}; },
  manualSave:function(){ throw new Error('The sample manual can’t be changed in this demo.'); },
- sopData:function(){ return {updated:new Date().toISOString(),json:JSON.stringify(SOPS)}; }
+ sopData:function(){ return {updated:new Date().toISOString(),json:JSON.stringify(SOPS)}; },
+ hubConfig:function(){ return hubCfg(); },
+ adminData:function(p){ pin(p); return adminV(); },
+ adminSave:function(p,by,sec,v){ pin(p); var c=cfg(), d=db();
+  if(sec==='tiles'){ c.tiles=v.tiles||{}; c.tileOrder=v.order||{}; }
+  else if(sec==='emails'){ c.emails={timeOff:v.timeOff,fieldRoutes:v.fieldRoutes,strikes:v.strikes,reviews:v.reviews}; c.alerts=v.alerts||c.alerts; d.licEmail=v.licenseEmail; }
+  else if(sec==='rules'){ Object.keys(RULES0).forEach(function(k){ if(v[k]===undefined) return; c.rules[k]=(k==='exceptions'||k==='tempPin')?v[k]:(+v[k]||RULES0[k]); }); c.rules.exceptions=(c.rules.exceptions||[]).filter(function(x){return String(x).trim();}); }
+  else if(sec==='docs'||sec==='onboarding'||sec==='comm'||sec==='map'){ c[sec==='docs'?'docs':sec]=v; }
+  alog(by,{tiles:'Hub tiles saved',emails:'Emails saved',rules:'Rules saved',docs:'Documents saved',onboarding:'Onboarding checklist saved',comm:'Commission trackers saved',map:'Map settings saved'}[sec]||'Settings saved');
+  save(); return adminV(); },
+ adminPerson:function(p,by,x){ pin(p); var d=starts(), nm=String(x.name||'').trim(); if(!nm) throw new Error('Enter the employee’s name.');
+  var o=x.orig?d.people.filter(function(q){return q.name===x.orig;})[0]:null;
+  if(d.people.some(function(q){return q.name===nm&&q!==o;})) throw new Error('Someone already has that name.');
+  if(!o){ o={}; d.people.push(o); }
+  if(x.orig&&x.orig!==nm){ d.T=d.T.map(function(t){return t===x.orig?nm:t;}); if(d.starts[x.orig]){ d.starts[nm]=d.starts[x.orig]; delete d.starts[x.orig]; } }
+  Object.assign(o,{name:nm,role:x.role,section:x.section,branch:x.branch,phone:x.phone,email:x.email,notes:x.notes,manager:!!x.manager,status:x.status||''});
+  if(x.start) d.starts[nm]=x.start; else delete d.starts[nm];
+  alog(by,x.orig?'Employee updated':'Employee added',nm); save(); return adminV(); },
+ adminBranch:function(p,by,x){ pin(p); var c=cfg(), d=db(), code=String(x.code||'').trim().toUpperCase(), nm=String(x.name||'').trim();
+  if(!/^[A-Z]{2,4}$/.test(code)) throw new Error('Use a short code of 2 to 4 letters.'); if(!nm) throw new Error('Enter the branch name.');
+  var isNew=!c.branches[code]; c.branches[code]=nm; if(isNew){ c.alerts[code]=''; if(!d.stock[code]) d.stock[code]=[]; }
+  alog(by,isNew?'Branch added':'Branch renamed',nm); save(); return adminV(); },
+ adminSetPin:function(){ throw new Error('PINs can’t be changed in this demo. The demo PIN stays 1234.'); },
+ strikeReviewDone:function(p,n,by){ pin(p); var d=starts(); d.rev80[n]=dateIn(0); save(); return skV(); },
+ vehList:function(){ return vehV(); },
+ vehSave:function(x){ var v=veh(), nm=String(x.name||'').trim(), o=x.id?vFind(x.id):null;
+  if(v.list.some(function(y){return y.name.toLowerCase()===nm.toLowerCase()&&y!==o;})) throw new Error('Another vehicle already has that name.');
+  if(!o){ o={id:'V'+Date.now().toString(36),history:[],docs:[]}; v.list.push(o); }
+  Object.assign(o,{name:nm,year:vNum(x.year),make:x.make,model:x.model,plate:x.plate,plateState:x.plateState,vin:x.vin,branch:x.branch,driver:x.driver,mileage:vNum(x.mileage),regExpires:x.regExpires,insCompany:x.insCompany,policy:x.policy,insExpires:x.insExpires,oilMiles:vNum(x.oilMiles)||5000,oilMonths:vNum(x.oilMonths)||6,notes:x.notes,active:!!x.active});
+  save(); return vehV(); },
+ vehLog:function(r){ var o=vFind(r.vehicleId); if(!o) throw new Error('Vehicle not found.');
+  o.history.unshift({id:'S'+Date.now().toString(36),type:r.type,date:r.date,mileage:r.mileage,shop:r.shop,cost:r.cost,notes:r.notes,by:'Demo user'});
+  if(r.mileage!=null&&(o.mileage==null||r.mileage>o.mileage)) o.mileage=r.mileage; save(); return vehV(); },
+ vehDocAdd:function(x){ var v=veh(), o=vFind(x.vehicleId), id='D'+Date.now().toString(36);
+  o.docs.unshift({id:id,kind:x.kind,at:Date.now(),by:'Demo user'}); if(x.expires){ if(x.kind==='insurance') o.insExpires=x.expires; else o.regExpires=x.expires; }
+  if(String(x.data||'').length<1500000) v.docs[id]={type:x.type,data:x.data}; save(); return vehV(); },
+ vehDocGet:function(id){ var v=veh(); if(v.docs[id]) return v.docs[id]; var o=v.list.filter(function(y){return y.docs.some(function(z){return z.id===id;});})[0], k=o?o.docs.filter(function(z){return z.id===id;})[0].kind:'document';
+  return {type:'application/pdf',data:pdf64('Sample '+(k==='insurance'?'insurance card':'registration'),['Sample Pest Co. demo document',o?o.name+' - '+[o.year,o.make,o.model].join(' ')+' - Plate '+o.plate:'',o?(k==='insurance'?'Policy '+o.policy+' - Expires '+o.insExpires:'Registration expires '+o.regExpires):'','Not a real document. Each company uploads its own.'])}; },
+ vehDocDelete:function(p,id){ pin(p); var v=veh(); v.list.forEach(function(o){ o.docs=o.docs.filter(function(z){return z.id!==id;}); }); delete v.docs[id]; save(); return vehV(); },
+ vehServiceDelete:function(p,id){ pin(p); veh().list.forEach(function(o){ o.history=o.history.filter(function(h){return h.id!==id;}); }); save(); return vehV(); },
+ vehDelete:function(p,id){ pin(p); var v=veh(); v.list=v.list.filter(function(o){return o.id!==id;}); save(); return vehV(); },
+ vehReminders:function(){ var v=veh(); return {scheduled:!!v.email,email:v.email,days:v.days,fallback:'manager@samplepest.example'}; },
+ vehSettings:function(em,dy){ var v=veh(); v.email=em; v.days=String(dy).replace(/\s+/g,''); save(); return {scheduled:true,email:v.email,days:v.days,fallback:'manager@samplepest.example'}; },
+ vehTest:function(){ return {sent:0,note:'Demo only: no email was sent. The live version emails this reminder.'}; }
 };
+window.__demoCfg=function(){ return hubCfg(); };
 window.fetch=function(u,o){ var url=String(u&&u.url||u);
  if(url==='demo-api'){ var b=JSON.parse(o.body), r;
   try{ if(!F[b.fn]) throw new Error('Not in this demo.'); r={ok:true,data:JSON.parse(JSON.stringify(F[b.fn].apply(null,b.args||[])))}; }catch(e){ r={ok:false,error:e.message}; }
@@ -296,6 +374,7 @@ h1{font:700 2.2rem/1 var(--display);letter-spacing:.02em;text-transform:uppercas
 .crumb h2{font:700 1.9rem/1 var(--display);letter-spacing:.02em;text-transform:uppercase;margin:0}
 footer{margin-top:auto;font-size:.8rem;color:var(--muted);text-align:center}
 </style>
+<script src="hub-config.js"></script>
 </head>
 <body>
 <main>
@@ -319,7 +398,7 @@ footer{margin-top:auto;font-size:.8rem;color:var(--muted);text-align:center}
       <div><b>Field Guide</b><span>Problems, products and policy</span></div>
     </a>
     <a class="tile" href="shop/index.html" data-g="ops" data-k="inventory supplies stock bait product check out return restock">
-      <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="9" y="7" width="30" height="38" rx="3.5" fill="currentColor"/><rect x="12.5" y="11.5" width="23" height="30" rx="1.5" fill="#fff"/><path d="M18 5.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2V7h1.5A1.5 1.5 0 0 1 33 8.5v3a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 15 11.5v-3A1.5 1.5 0 0 1 16.5 7H18z" fill="currentColor"/><circle cx="24" cy="5.6" r="1.3" fill="var(--accent)"/><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 19.5l1.6 1.6 3-3.2M15.5 26.5l1.6 1.6 3-3.2M15.5 33.5l1.6 1.6 3-3.2" stroke="#067a2e" stroke-width="1.9"/><path d="M23 20h9.5M23 27h9.5M23 34h6.5" stroke="currentColor" stroke-width="2"/></g></svg></div>
+      <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="9" y="7" width="30" height="38" rx="3.5" fill="currentColor"/><rect x="12.5" y="11.5" width="23" height="30" rx="1.5" fill="#fff"/><path d="M18 5.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2V7h1.5A1.5 1.5 0 0 1 33 8.5v3a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 15 11.5v-3A1.5 1.5 0 0 1 16.5 7H18z" fill="currentColor"/><circle cx="24" cy="5.6" r="1.3" fill="var(--accent)"/><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 19.5l1.6 1.6 3-3.2M15.5 26.5l1.6 1.6 3-3.2M15.5 33.5l1.6 1.6 3-3.2" stroke="#4a7a17" stroke-width="1.9"/><path d="M23 20h9.5M23 27h9.5M23 34h6.5" stroke="currentColor" stroke-width="2"/></g></svg></div>
       <div><b>Inventory</b><span>Shop supplies in and out</span></div>
     </a>
     <a class="tile" href="pricing/index.html" data-g="office" data-k="price prices pricing cost quote estimate floor rate">
@@ -333,6 +412,10 @@ footer{margin-top:auto;font-size:.8rem;color:var(--muted);text-align:center}
     <a class="tile" href="equipment/index.html" data-g="ops" data-k="equipment trap traps camera cameras burrow rx gas chamber gear tools">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="4" y="13" width="40" height="24" rx="2.5" fill="currentColor"/><g stroke="#fff" stroke-width="1.6" stroke-linecap="round"><path d="M12 17v16M18 17v16M24 17v16M30 17v16M36 17v16"/><path d="M8 25h32"/></g><path d="M24 13V8M18 8h12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><rect x="38" y="15" width="3.5" height="20" rx="1" fill="var(--accent)"/><path d="M8 37v4M40 37v4" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>
       <div><b>Equipment</b><span>Traps, cameras and gear</span></div>
+    </a>
+    <a class="tile" href="vehicles/index.html" data-g="ops mgmt" data-k="vehicle vehicles truck trucks van fleet registration insurance oil change maintenance repair repairs mileage">
+      <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M3 14a3 3 0 0 1 3-3h22a3 3 0 0 1 3 3v19H3z" fill="currentColor"/><path d="M31 19h7.5a3 3 0 0 1 2.4 1.2l4.4 5.9a3 3 0 0 1 .7 1.9V33H31z" fill="currentColor"/><path d="M34 22h4.3l3.2 4.5H34z" fill="var(--accent)"/><path d="M8 18h9M8 23h14" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="35" r="5" fill="var(--accent)" stroke="currentColor" stroke-width="3"/><circle cx="37" cy="35" r="5" fill="var(--accent)" stroke="currentColor" stroke-width="3"/></svg></div>
+      <div><b>Vehicles</b><span>Registration, insurance, oil and repairs</span></div>
     </a>
     <a class="tile" href="traps/index.html" data-g="ops" data-k="trap traps check checks skunk raccoon squirrel catch caught overdue set pull wildlife">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="26" r="17" fill="currentColor"/><circle cx="24" cy="26" r="12.5" fill="none" stroke="var(--accent)" stroke-width="2.4"/><path d="M24 17v9l6 4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5h12M24 5v4" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="38" cy="12" r="4.5" fill="var(--accent)"/></svg></div>
@@ -370,9 +453,9 @@ footer{margin-top:auto;font-size:.8rem;color:var(--muted);text-align:center}
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="20" cy="15" r="8" fill="currentColor"/><path d="M5 40c1-8 7-13 15-13s14 5 15 13z" fill="currentColor"/><circle cx="36" cy="32" r="9" fill="var(--accent)" stroke="currentColor" stroke-width="2.4"/><path d="M36 27v10M31 32h10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>
       <div><b>Onboarding</b><span>New tech checklist and supervisor sign-off</span></div>
     </a>
-    <a class="tile" href="soon/index.html?t=admin" data-g="mgmt" data-k="admin manager settings records owner management office coming soon">
+    <a class="tile" href="admin/index.html" data-g="mgmt" data-k="admin manager settings records owner management office pin password employees branches emails rules tiles">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M24 4l16 6v12c0 10-7 18-16 22C15 40 8 32 8 22V10z" fill="currentColor"/><path d="M17 23l5 5 9-10" fill="none" stroke="var(--accent)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div><b>Admin</b><span>Coming soon · Manager settings and records</span></div>
+      <div><b>Admin</b><span>Settings, employees and PINs</span></div>
     </a>
     <a class="tile" href="soon/index.html?t=sales" data-g="office" data-k="sales sell leads quote quotes d2d door to door script pitch close coming soon">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M6 36l12-12 8 8 14-16" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 16h10v10" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="18" cy="24" r="3.4" fill="var(--accent)"/><circle cx="26" cy="32" r="3.4" fill="var(--accent)"/></svg></div>
@@ -406,9 +489,9 @@ footer{margin-top:auto;font-size:.8rem;color:var(--muted);text-align:center}
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="5" y="9" width="38" height="34" rx="4" fill="currentColor"/><rect x="5" y="9" width="38" height="10" rx="4" fill="var(--accent)"/><path d="M15 5v9M33 5v9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M14 26h20M14 32h20M14 38h12" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/></svg></div>
       <div><b>Time Off Tracker</b><span>Approve and track requests</span></div>
     </a>
-    <a class="tile" href="strikes/index.html" data-g="mgmt" data-k="attendance strikes strike points late notice no call no show reset performance improvement manager">
+    <a class="tile" href="strikes/index.html" data-g="mgmt" data-k="employee management employees staff start date hire anniversary 80 day review pin password reset attendance strikes strike points late notice no call no show reset performance improvement manager">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="11" cy="24" r="7" fill="currentColor"/><circle cx="25" cy="24" r="7" fill="currentColor"/><circle cx="39" cy="24" r="7" fill="none" stroke="currentColor" stroke-width="3"/><path d="M6 38h36" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/></svg></div>
-      <div><b>Attendance Strikes</b><span>Track strikes and resets</span></div>
+      <div><b>Employee Management</b><span>Strikes, start dates and PIN resets</span></div>
     </a>
     <a class="tile" href="me/index.html" data-g="home" data-k="my dashboard employee my strikes attendance my time off requests pin profile">
       <div class="ico" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="16" r="10" fill="currentColor"/><path d="M6 44c2-11 9-16 18-16s16 5 18 16z" fill="currentColor"/><circle cx="24" cy="16" r="4" fill="var(--accent)"/></svg></div>
@@ -429,7 +512,10 @@ footer{margin-top:auto;font-size:.8rem;color:var(--muted);text-align:center}
   var sect=document.getElementById('sect'), crumb=document.getElementById('crumb'), gname=document.getElementById('gname'), bar=document.querySelector('.choose');
   var GROUPS={ops:'Operations',office:'Office Staff',mgmt:'Management'}, G='';
   var MGMT_API='demo-api', gate=document.getElementById('gate'), gpin=document.getElementById('gpin'), gerr=document.getElementById('gerr'), gbtn=document.getElementById('gbtn'), mgmtOpen=false;
-  try{ sessionStorage.removeItem('hub.mgmt'); sessionStorage.removeItem('hub.mgmtpin'); }catch(e){}
+  try{ sessionStorage.removeItem('hub.mgmt'); sessionStorage.removeItem('hub.mgmtpin'); sessionStorage.removeItem('kpi.pin'); }catch(e){}
+  /* Unlocking Management stays good for this tab until 30 minutes of no Management use, so its tools don't ask again. */
+  function mgmtGet(){ try{ var p=sessionStorage.getItem('mgmt.pin'), u=+sessionStorage.getItem('mgmt.until'); if(p&&u>Date.now()){ sessionStorage.setItem('mgmt.until',String(Date.now()+(+sessionStorage.getItem('mgmt.ttl')||18e5))); return p; } sessionStorage.removeItem('mgmt.pin'); sessionStorage.removeItem('mgmt.until'); }catch(e){} return ''; }
+  function mgmtSet(p){ try{ var t=(window.hubRules?hubRules().unlockMin:30)*6e4; sessionStorage.setItem('mgmt.pin',p); sessionStorage.setItem('mgmt.ttl',String(t)); sessionStorage.setItem('mgmt.until',String(Date.now()+t)); }catch(e){} }
   try{ hide=JSON.parse(localStorage.getItem('hub.hide')||'[]')||[]; }catch(e){ hide=[]; }
   tiles.forEach(function(t){ var c=document.createElement('i'); c.className='chk'; c.setAttribute('aria-hidden','true'); t.appendChild(c); });
   var base=tiles.slice();
@@ -442,6 +528,7 @@ footer{margin-top:auto;font-size:.8rem;color:var(--muted);text-align:center}
       var hay=(t.textContent+' '+t.getAttribute('data-k')).toLowerCase();
       var ok=(home||words.length||inG(t)) && words.every(function(w){ return hay.indexOf(w)>=0 || hay.indexOf(w.replace(/s$/,''))>=0; });
       if(home&&!words.length) ok=false;
+      if(t.getAttribute('data-off')) ok=false;
       if(!mgmtOpen&&(t.getAttribute('data-g')||'').trim()==='mgmt') ok=false;
       t.hidden=!ok; t.classList.toggle('off', off && !words.length);
       if(choosing) t.setAttribute('aria-pressed', String(!off)); else t.removeAttribute('aria-pressed');
@@ -467,7 +554,7 @@ footer{margin-top:auto;font-size:.8rem;color:var(--muted);text-align:center}
     list.forEach(function(t){ nav.insertBefore(t,none); }); }
   function saveOrder(){ order=[].filter.call(nav.querySelectorAll('.tile'),function(t){ return !t.hidden; }).map(function(t){ return t.getAttribute('href'); });
     try{ localStorage.setItem(okey(),JSON.stringify(order)); }catch(e){} }
-  var DEF={"ops": ["field-guide/index.html", "sops/index.html", "mix/index.html", "sds/index.html", "traps/index.html", "https://webapp.spypoint.com/", "equipment/index.html", "shop/index.html", "measure/index.html", "licenses/index.html", "directory/index.html", "policies/index.html", "time-off/index.html", "onboarding/index.html", "soon/index.html?t=training"], "office": ["manual/index.html", "csr/index.html", "pricing/index.html", "measure/index.html", "commission/index.html", "sops/index.html", "field-guide/index.html", "directory/index.html", "soon/index.html?t=sales", "policies/index.html", "time-off/index.html"], "mgmt": ["kpis/index.html", "commission/index.html", "licenses/index.html", "time-off-tracker/index.html", "strikes/index.html", "signatures/index.html", "time-off/index.html", "directory/index.html", "soon/index.html?t=admin"]};
+  var DEF={"ops": ["field-guide/index.html", "sops/index.html", "mix/index.html", "sds/index.html", "traps/index.html", "https://webapp.spypoint.com/", "equipment/index.html", "shop/index.html", "measure/index.html", "licenses/index.html", "directory/index.html", "policies/index.html", "time-off/index.html", "onboarding/index.html", "soon/index.html?t=training"], "office": ["manual/index.html", "csr/index.html", "pricing/index.html", "measure/index.html", "commission/index.html", "sops/index.html", "field-guide/index.html", "directory/index.html", "soon/index.html?t=sales", "policies/index.html", "time-off/index.html"], "mgmt": ["kpis/index.html", "commission/index.html", "licenses/index.html", "time-off-tracker/index.html", "strikes/index.html", "signatures/index.html", "time-off/index.html", "directory/index.html", "admin/index.html"]};
   var press=null, drag=null, blockClick=false;
   function pt(e){ var p=e.touches&&e.touches[0]||e.changedTouches&&e.changedTouches[0]||e; return {x:p.clientX,y:p.clientY}; }
   function start(e){ if(e.button>0) return; var t=e.target.closest('.tile'); if(!t||q.value.trim()||!G) return;
@@ -497,11 +584,21 @@ footer{margin-top:auto;font-size:.8rem;color:var(--muted);text-align:center}
     var gated=G==='mgmt'&&!mgmtOpen&&!q.value.trim(); gate.hidden=!gated; if(gated){ nav.hidden=true; bar.hidden=true; } };
   gate.addEventListener('submit',function(e){ e.preventDefault(); var pin=gpin.value.trim(); if(!pin) return; gbtn.disabled=true; gbtn.textContent='Checking…'; gerr.hidden=true;
     fetch(MGMT_API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({fn:'mgmtUnlock',args:[pin]})}).then(function(r){ return r.json(); }).then(function(j){ if(!j.ok) throw new Error(j.error||'Wrong PIN.');
-      mgmtOpen=true; gpin.value=''; paint(); }).catch(function(x){ gerr.textContent=/fetch|network/i.test(String(x.message))?'Could not check the PIN. Check your connection and try again.':String(x.message||x); gerr.hidden=false; gpin.value=''; })
+      mgmtOpen=true; mgmtSet(pin); gpin.value=''; paint(); }).catch(function(x){ gerr.textContent=/fetch|network/i.test(String(x.message))?'Could not check the PIN. Check your connection and try again.':String(x.message||x); gerr.hidden=false; gpin.value=''; })
       .then(function(){ gbtn.disabled=false; gbtn.textContent='Open Management'; }); });
-  function route(){ var g=(location.hash||'').slice(1); G=GROUPS[g]?g:''; if(G!=='mgmt') mgmtOpen=false; if(choosing) pick.click(); q.value=''; loadOrder(); applyOrder(); paint(); window.scrollTo(0,0);}
+  /* Tile names, sections, order and hiding set in Admin. */
+  var ORIG={}, DEF0=JSON.parse(JSON.stringify(DEF));
+  tiles.forEach(function(t){ var b=t.querySelector('b'), s=t.querySelector('b+span'); ORIG[t.getAttribute('href')]={n:b?b.textContent:'',s:s?s.textContent:'',g:t.getAttribute('data-g')}; });
+  function applyCfg(){ var c=window.HUB||{}, T=c.tiles||{}, O=c.tileOrder||{};
+    tiles.forEach(function(t){ var h=t.getAttribute('href'), o=ORIG[h], x=T[h]||{}, b=t.querySelector('b'), s=t.querySelector('b+span');
+      if(b) b.textContent=x.name||o.n; if(s) s.textContent=x.sub||o.s; t.setAttribute('data-g',x.groups&&x.groups.length?x.groups.join(' '):o.g);
+      if(x.hidden&&h!=='me/index.html'&&h!=='admin/index.html') t.setAttribute('data-off','1'); else t.removeAttribute('data-off'); });
+    Object.keys(DEF0).forEach(function(g){ DEF[g]=O[g]&&O[g].length?O[g]:DEF0[g]; }); }
+  function route(){ var g=(location.hash||'').slice(1); G=GROUPS[g]?g:''; mgmtOpen=!!mgmtGet(); if(choosing) pick.click(); q.value=''; loadOrder(); applyOrder(); paint(); window.scrollTo(0,0);}
   window.addEventListener('hashchange',route);
-  route();
+  window.addEventListener('pageshow',function(e){ if(e.persisted) route(); });
+  applyCfg(); route();
+  if(window.hubReady) hubReady(function(){ applyCfg(); loadOrder(); applyOrder(); paint(); });
 })();
 </script>
 </body>

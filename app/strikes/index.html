@@ -114,15 +114,49 @@ function sk(){ var d=hr(); if(!d.sk){ d.sk={inc:[
  {incident:'I3',employee:'Dana Whitfield',branch:'North Branch',type:'Late notice',count:1,live:1,incidentDate:dateIn(-95),note:'',by:'Rosa Delgado',state:'Active',expires:dateIn(270),shared:dateIn(-94),sharedHow:'Email',shareBy:dateIn(-93),disputeBy:dateIn(-88),disputed:'',disputeResult:''}],res:[],rev:{},pto:{}}; save(); } return d; }
 function ptoOf(d,n){ var c=d.sk.pto[n]||{eligible:'Yes',allowance:40,prior:0}, y=new Date().getFullYear(), u=0, sc=0, pe=0, t=dateIn(0); d.to.forEach(function(r){ if(r.name!==n||r.pay!=='Paid') return; var h=+r.hours||0; if(r.status==='Pending') pe+=h; else if(r.status==='Approved'){ if(r.start>t) sc+=h; else u+=h; } }); var al=+c.allowance||0, pr=+c.prior||0; return {year:y,eligible:c.eligible==='Yes',allowance:al,prior:pr,used:u,scheduled:sc,pending:pe,left:Math.max(0,al-pr-u-sc-pe)}; }
 function skP(d,p){ var l=d.sk.inc.filter(function(i){return i.employee===p.name&&i.count;}), a=l.filter(function(i){return i.state==='Active';}), act=a.reduce(function(s,i){return s+i.live;},0), last=l.reduce(function(m,i){return i.incidentDate>m?i.incidentDate:m;},''), on=last?addD(last,90):'';
- return {name:p.name,branch:p.branch,email:p.email,active:act,resets12:d.sk.res.filter(function(r){return r.employee===p.name;}).length,removeOn:act?on:'',removable:!!(act&&on<=dateIn(0)),hasPin:false,pto:ptoOf(d,p.name)}; }
+ return {name:p.name,branch:p.branch,email:p.email,active:act,resets12:d.sk.res.filter(function(r){return r.employee===p.name;}).length,removeOn:act?on:'',removable:!!(act&&on<=dateIn(0)),hasPin:true,start:(starts().starts[p.name]||''),reviewDone:(d.rev80&&d.rev80[p.name])||'',pto:ptoOf(d,p.name)}; }
 function skV(){ var d=sk(), team=d.people.map(function(p){return skP(d,p);}), t=dateIn(0), todo=[];
  d.to.forEach(function(r){ if(+r.notice<3&&!d.sk.rev[r.id]) todo.push({k:'review',r:r}); });
  d.sk.inc.forEach(function(i){ if(i.count&&!i.shared&&i.state==='Active') todo.push({k:'share',i:i,late:i.shareBy<t}); if(i.disputed&&!i.disputeResult) todo.push({k:'dispute',i:i}); });
  d.sk.res.forEach(function(r){ if(!r.donuts||!r.meeting||(r.pip&&!r.pipDone)) todo.push({k:'reset',r:r,late:r.meetingDue<t}); });
  team.forEach(function(p){ if(p.removable) todo.push({k:'clean',p:p}); });
- return {today:t,exc:['Family emergency','Illness','Legally protected leave','Manager approved in advance'],team:team,incidents:d.sk.inc.slice().reverse(),resets:d.sk.res,todo:todo}; }
-function myV(n){ var d=sk(), p=d.people.filter(function(x){return x.name===n;})[0]||{name:n}, s=skP(d,p); return {name:n,today:dateIn(0),active:s.active,removeOn:s.removeOn,removable:s.removable,strikes:d.sk.inc.filter(function(i){return i.employee===n&&i.count;}).reverse(),resets:d.sk.res.filter(function(r){return r.employee===n;}),pto:s.pto,requests:d.to.filter(function(r){return r.name===n;}),mustChange:false}; }
+ var R=cfg().rules; team.forEach(function(p){ if(!p.start||p.reviewDone) return; var due=addD(p.start,+R.reviewDays||80), days=Math.round((new Date(due+'T12:00:00')-new Date(t+'T12:00:00'))/DAY); if(days<=(+R.reviewAhead||7)) todo.push({k:'hire80',name:p.name,branch:p.branch,start:p.start,due:due,days:days,late:days<0}); });
+ return {today:t,rules:R,exc:R.exceptions,starts:{total:team.length,entered:team.filter(function(p){return p.start;}).length,bad:[],url:''},team:team,incidents:d.sk.inc.slice().reverse(),resets:d.sk.res,todo:todo}; }
+function myV(n){ var d=sk(), p=d.people.filter(function(x){return x.name===n;})[0]||{name:n}, s=skP(d,p); return {name:n,today:dateIn(0),active:s.active,removeOn:s.removeOn,removable:s.removable,strikes:d.sk.inc.filter(function(i){return i.employee===n&&i.count;}).reverse(),resets:d.sk.res.filter(function(r){return r.employee===n;}),pto:s.pto,requests:d.to.filter(function(r){return r.name===n;}),mustChange:false,startDate:(starts().starts[n]||''),rules:cfg().rules}; }
 function fi(d,id){ return d.sk.inc.filter(function(i){return i.incident===id;})[0]; }
+/* Admin settings, start dates and vehicles (sample data). */
+var RULES0={reviewDays:80,reviewAhead:7,unlockMin:30,ptoHours:40,noticeDays:3,ncnsStrikes:2,resetAt:3,expireMonths:12,cleanDays:90,disputeDays:5,shareDays:2,tempPin:'1234',exceptions:['Family emergency','Illness','Legally protected leave','Manager approved in advance']};
+function cfg(){ var d=db(); if(!d.cfg){ d.cfg={branches:{IF:'North Branch',WY:'South Branch',BZ:'East Branch'},rules:JSON.parse(JSON.stringify(RULES0)),docs:{},tiles:{},tileOrder:{},map:{provider:'esri',dailyTiles:0},
+  emails:{timeOff:'',fieldRoutes:'',strikes:'',reviews:''},alerts:{IF:'',WY:'',BZ:''},comm:[{name:'Theo Marsh',file:''},{name:'Dana Whitfield',file:''}],log:[{when:Date.now()-3*DAY,who:'Rosa Delgado',what:'Rules saved',to:'Time off notice: 3 days'}]}; save(); }
+ if(!d.cfg.onboarding) d.cfg.onboarding={plan:OB_PLAN.map(function(g){ return {phase:g.phase,group:g.group,who:/Paperwork|Required/.test(g.group)?'owner':/review|ride-along/i.test(g.group)?'supervisor':'tech',items:g.items.map(function(i){return i.slice();})}; }),signoff:OB_SIGN.map(function(i){return i.slice();})};
+ return d.cfg; }
+function hubCfg(){ var c=cfg(); return {branches:c.branches,rules:c.rules,docs:c.docs,tiles:c.tiles,tileOrder:c.tileOrder,map:c.map}; }
+function starts(){ var d=db(); if(!d.starts){ d.starts={'Avery Lindqvist':dateIn(-3100),'Rosa Delgado':dateIn(-1460),'Marcus Hale':dateIn(-910),'Dana Whitfield':dateIn(-610),'Luis Ortega':dateIn(-420),'Priya Nair':dateIn(-75),'Cody Brandt':dateIn(-300),'Jenna Sloan':dateIn(-40),'Nora Beck':dateIn(-200),'Theo Marsh':dateIn(-505)}; d.rev80={}; Object.keys(d.starts).forEach(function(n){ if(d.starts[n]<dateIn(-80)) d.rev80[n]=addD(d.starts[n],78); }); save(); } return d; }
+function isMgr(p){ return p.manager!==undefined?!!p.manager:/leadership/i.test(p.section||''); }
+function adminV(){ var d=starts(), c=cfg(); return {people:d.people.map(function(p){ return {name:p.name,role:p.role,section:p.section,branch:p.branch,phone:p.phone,email:p.email,notes:p.notes||'',start:d.starts[p.name]||'',manager:isMgr(p),status:p.status||''}; }),
+ tiles:c.tiles,tileOrder:c.tileOrder,emails:c.emails,defaultEmail:'manager@samplepest.example',licenseEmail:d.licEmail,branches:c.branches,alerts:c.alerts,rules:c.rules,docs:c.docs,versions:{},onboarding:c.onboarding,comm:c.comm,map:c.map,hasMaster:true,log:c.log.slice(0,50)}; }
+function alog(by,what,to){ cfg().log.unshift({when:Date.now(),who:by||'Manager',what:what,to:to||''}); }
+function pdf64(title,lines){ var t=['BT /F1 20 Tf 60 740 Td ('+title+') Tj ET'].concat(lines.map(function(l,i){ return 'BT /F1 12 Tf 60 '+(700-i*20)+' Td ('+l+') Tj ET'; })).join('\n');
+ var o=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>','<< /Length '+t.length+' >>\nstream\n'+t+'\nendstream','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+ var s='%PDF-1.4\n', off=[]; o.forEach(function(x,i){ off.push(s.length); s+=(i+1)+' 0 obj\n'+x+'\nendobj\n'; }); var x=s.length; s+='xref\n0 '+(o.length+1)+'\n0000000000 65535 f \n'+off.map(function(n){ return String(n).padStart(10,'0')+' 00000 n \n'; }).join('')+'trailer\n<< /Size '+(o.length+1)+' /Root 1 0 R >>\nstartxref\n'+x+'\n%%EOF';
+ return btoa(s); }
+function veh(){ var d=db(); if(!d.veh){ var T=d.T, n=Date.now();
+  function h(id,type,days,mi,shop,cost,notes){ return {id:id,type:type,date:dateIn(-days),mileage:mi,shop:shop,cost:Number(cost),notes:notes,by:'Rosa Delgado'}; }
+  d.veh={email:'',days:'30,14,7,0',docs:{},list:[
+   {id:'V1',name:'Truck 1',year:2021,make:'Ford',model:'F-150',plate:'SPL 101',plateState:'TX',vin:'',branch:'North Branch',driver:T[0],mileage:61240,regExpires:dateIn(140),insCompany:'Sample Mutual',policy:'SM-55021',insExpires:dateIn(22),oilMiles:5000,oilMonths:6,notes:'',active:true,
+    history:[h('S1','oil_change',62,57900,'Quick Lube','89.95',''),h('S2','tires',120,55200,'Tire Center','742.18','Four new all-terrain tires')],docs:[{id:'D1',kind:'registration',at:n-40*DAY,by:'Rosa Delgado'},{id:'D2',kind:'insurance',at:n-40*DAY,by:'Rosa Delgado'}]},
+   {id:'V2',name:'Truck 2',year:2019,make:'Chevrolet',model:'Silverado 1500',plate:'SPL 102',plateState:'TX',vin:'',branch:'North Branch',driver:T[1],mileage:98410,regExpires:dateIn(-4),insCompany:'Sample Mutual',policy:'SM-55022',insExpires:dateIn(200),oilMiles:5000,oilMonths:6,notes:'Check engine light came on once in the spring.',active:true,
+    history:[h('S3','oil_change',150,92800,'Quick Lube','94.50',''),h('S4','repair',190,91200,'Main Street Auto','418.00','Replaced front brake pads and rotors')],docs:[{id:'D3',kind:'insurance',at:n-90*DAY,by:'Rosa Delgado'}]},
+   {id:'V3',name:'Wildlife truck',year:2022,make:'Toyota',model:'Tacoma',plate:'SPL 201',plateState:'OK',vin:'',branch:'South Branch',driver:T[2],mileage:38760,regExpires:dateIn(260),insCompany:'Sample Mutual',policy:'SM-55031',insExpires:dateIn(260),oilMiles:5000,oilMonths:6,notes:'Ladder rack and trap boxes.',active:true,
+    history:[h('S5','oil_change',35,36900,'Quick Lube','79.95','')],docs:[{id:'D4',kind:'registration',at:n-35*DAY,by:'Rosa Delgado'},{id:'D5',kind:'insurance',at:n-35*DAY,by:'Rosa Delgado'}]},
+   {id:'V4',name:'Van 1',year:2018,make:'Ford',model:'Transit Connect',plate:'SPL 301',plateState:'OK',vin:'',branch:'East Branch',driver:T[4],mileage:121300,regExpires:dateIn(75),insCompany:'Sample Mutual',policy:'SM-55041',insExpires:dateIn(75),oilMiles:5000,oilMonths:6,notes:'',active:true,
+    history:[h('S6','oil_change',100,116800,'Quick Lube','84.95',''),h('S7','inspection',100,116800,'State inspection station','25.50','Passed')],docs:[]}]}; save(); }
+ return d.veh; }
+function vehV(){ var v=veh(), c=cfg(); v.list.forEach(function(x){ x.history.sort(function(a,b){ return a.date<b.date?1:a.date>b.date?-1:0; }); });
+ return {today:dateIn(0),vehicles:v.list,branches:Object.keys(c.branches).map(function(k){return c.branches[k];}),people:db().people.map(function(p){return p.name;})}; }
+function vFind(id){ return veh().list.filter(function(x){return x.id===id;})[0]; }
+function vNum(x){ if(x===''||x==null) return null; var n=Number(String(x).replace(/[$,\s]/g,'')); return isNaN(n)?null:n; }
+
 var F={
  getDirectory:function(){ return {people:db().people,sheetUrl:''}; },
  eqList:eq,
@@ -177,16 +211,16 @@ var F={
  strikePto:function(p,n,o){ pin(p); var d=sk(); d.sk.pto[n]={eligible:o.eligible,allowance:+o.allowance||0,prior:+o.prior||0}; save(); return skV(); },
  strikeMark:function(p,id,f){ pin(p); var d=sk(), r=d.sk.res.filter(function(x){return x.id===id;})[0]; r[f]=dateIn(0); save(); return skV(); },
  mgmtUnlock:function(p){ pin(p); return true; },
- obList:function(){ var d=hr(); return {plan:OB_PLAN,signoff:OB_SIGN,hires:d.ob}; },
+ obList:function(){ var d=hr(); var o=cfg().onboarding; return {plan:o.plan,signoff:o.signoff,hires:d.ob}; },
  obStart:function(x){ var d=hr(), id='H'+Date.now().toString(36); d.ob.push({id:id,tech:x.tech,branch:x.branch,start:x.start,supervisor:x.supervisor,status:'In progress',signed:'',file:'',checks:{}}); save(); return id; },
  obCheck:function(id,k,on,by){ var d=hr(), h=find(d.ob,id); if(on) h.checks[k]={by:by,at:dateIn(0)}; else delete h.checks[k]; save(); return h.checks; },
  obSign:function(x){ pin(x.pin); var d=hr(), h=find(d.ob,x.id); h.status='Signed off'; h.supervisor=x.supervisor; h.signed=new Date().toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'})+' at '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); save(); return true; },
  obRemove:function(id,p){ pin(p); var d=hr(); d.ob=d.ob.filter(function(h){return h.id!==id;}); save(); return true; },
  policySigned:function(n){ return hr().sigs.filter(function(s){return s.name===n;}); },
  policySign:function(x){ var d=hr(), w=Date.now(); d.sigs.push({name:x.name,policy:x.title,version:x.version,when:w,url:''}); save(); return {when:new Date(w).toLocaleDateString(),emailed:false}; },
- polStatus:function(){ var d=hr(); return {people:d.people,sigs:d.sigs}; },
+ polStatus:function(){ var d=hr(); return {people:d.people,sigs:d.sigs,docs:cfg().docs}; },
  toMine:function(n){ return hr().to.filter(function(r){return r.name===n;}); },
- toSubmit:function(x){ var d=hr(), s=new Date(x.start+'T12:00:00'), n=Math.round((s-new Date())/DAY), p=d.people.filter(function(q){return q.name===x.name;})[0]; d.to.unshift({id:'R'+Date.now().toString(36),name:x.name,branch:p?p.branch:'',start:x.start,end:x.end,hours:x.hours,pay:x.pay,status:'Pending',by:'',reason:'',notice:n,blocked:false}); save(); return {late:n<3}; },
+ toSubmit:function(x){ var d=hr(), s=new Date(x.start+'T12:00:00'), n=Math.round((s-new Date())/DAY), p=d.people.filter(function(q){return q.name===x.name;})[0]; d.to.unshift({id:'R'+Date.now().toString(36),name:x.name,branch:p?p.branch:'',start:x.start,end:x.end,hours:x.hours,pay:x.pay,status:'Pending',by:'',reason:'',notice:n,need:(+cfg().rules.noticeDays||3),blocked:false}); save(); return {late:n<(+cfg().rules.noticeDays||3)}; },
  toAdmin:function(){ return hr().to; },
  toDecide:function(p,id,st,by,why){ var d=hr(), r=find(d.to,id); r.status=st; r.by=by; r.reason=why||''; save(); return d.to; },
  toBlocked:function(p,id,v){ var d=hr(), r=find(d.to,id); r.blocked=v; save(); return d.to; },
@@ -197,8 +231,52 @@ var F={
  commAddSale:function(who,pw,s){ cpw(pw); var d=db(), c=comm(), a=Number(String(s.amount).replace(/[$,\s]/g,''))||0; c[who].current.unshift({date:s.date,svc:s.svc,cust:s.cust,amt:a,cur:Math.round(a*10)/100}); d.comm=c; save(); return commView(who); },
  manualData:function(p){ cpw(p); return {updated:new Date().toISOString(),canEdit:false,json:JSON.stringify(MANUAL)}; },
  manualSave:function(){ throw new Error('The sample manual can’t be changed in this demo.'); },
- sopData:function(){ return {updated:new Date().toISOString(),json:JSON.stringify(SOPS)}; }
+ sopData:function(){ return {updated:new Date().toISOString(),json:JSON.stringify(SOPS)}; },
+ hubConfig:function(){ return hubCfg(); },
+ adminData:function(p){ pin(p); return adminV(); },
+ adminSave:function(p,by,sec,v){ pin(p); var c=cfg(), d=db();
+  if(sec==='tiles'){ c.tiles=v.tiles||{}; c.tileOrder=v.order||{}; }
+  else if(sec==='emails'){ c.emails={timeOff:v.timeOff,fieldRoutes:v.fieldRoutes,strikes:v.strikes,reviews:v.reviews}; c.alerts=v.alerts||c.alerts; d.licEmail=v.licenseEmail; }
+  else if(sec==='rules'){ Object.keys(RULES0).forEach(function(k){ if(v[k]===undefined) return; c.rules[k]=(k==='exceptions'||k==='tempPin')?v[k]:(+v[k]||RULES0[k]); }); c.rules.exceptions=(c.rules.exceptions||[]).filter(function(x){return String(x).trim();}); }
+  else if(sec==='docs'||sec==='onboarding'||sec==='comm'||sec==='map'){ c[sec==='docs'?'docs':sec]=v; }
+  alog(by,{tiles:'Hub tiles saved',emails:'Emails saved',rules:'Rules saved',docs:'Documents saved',onboarding:'Onboarding checklist saved',comm:'Commission trackers saved',map:'Map settings saved'}[sec]||'Settings saved');
+  save(); return adminV(); },
+ adminPerson:function(p,by,x){ pin(p); var d=starts(), nm=String(x.name||'').trim(); if(!nm) throw new Error('Enter the employee’s name.');
+  var o=x.orig?d.people.filter(function(q){return q.name===x.orig;})[0]:null;
+  if(d.people.some(function(q){return q.name===nm&&q!==o;})) throw new Error('Someone already has that name.');
+  if(!o){ o={}; d.people.push(o); }
+  if(x.orig&&x.orig!==nm){ d.T=d.T.map(function(t){return t===x.orig?nm:t;}); if(d.starts[x.orig]){ d.starts[nm]=d.starts[x.orig]; delete d.starts[x.orig]; } }
+  Object.assign(o,{name:nm,role:x.role,section:x.section,branch:x.branch,phone:x.phone,email:x.email,notes:x.notes,manager:!!x.manager,status:x.status||''});
+  if(x.start) d.starts[nm]=x.start; else delete d.starts[nm];
+  alog(by,x.orig?'Employee updated':'Employee added',nm); save(); return adminV(); },
+ adminBranch:function(p,by,x){ pin(p); var c=cfg(), d=db(), code=String(x.code||'').trim().toUpperCase(), nm=String(x.name||'').trim();
+  if(!/^[A-Z]{2,4}$/.test(code)) throw new Error('Use a short code of 2 to 4 letters.'); if(!nm) throw new Error('Enter the branch name.');
+  var isNew=!c.branches[code]; c.branches[code]=nm; if(isNew){ c.alerts[code]=''; if(!d.stock[code]) d.stock[code]=[]; }
+  alog(by,isNew?'Branch added':'Branch renamed',nm); save(); return adminV(); },
+ adminSetPin:function(){ throw new Error('PINs can’t be changed in this demo. The demo PIN stays 1234.'); },
+ strikeReviewDone:function(p,n,by){ pin(p); var d=starts(); d.rev80[n]=dateIn(0); save(); return skV(); },
+ vehList:function(){ return vehV(); },
+ vehSave:function(x){ var v=veh(), nm=String(x.name||'').trim(), o=x.id?vFind(x.id):null;
+  if(v.list.some(function(y){return y.name.toLowerCase()===nm.toLowerCase()&&y!==o;})) throw new Error('Another vehicle already has that name.');
+  if(!o){ o={id:'V'+Date.now().toString(36),history:[],docs:[]}; v.list.push(o); }
+  Object.assign(o,{name:nm,year:vNum(x.year),make:x.make,model:x.model,plate:x.plate,plateState:x.plateState,vin:x.vin,branch:x.branch,driver:x.driver,mileage:vNum(x.mileage),regExpires:x.regExpires,insCompany:x.insCompany,policy:x.policy,insExpires:x.insExpires,oilMiles:vNum(x.oilMiles)||5000,oilMonths:vNum(x.oilMonths)||6,notes:x.notes,active:!!x.active});
+  save(); return vehV(); },
+ vehLog:function(r){ var o=vFind(r.vehicleId); if(!o) throw new Error('Vehicle not found.');
+  o.history.unshift({id:'S'+Date.now().toString(36),type:r.type,date:r.date,mileage:r.mileage,shop:r.shop,cost:r.cost,notes:r.notes,by:'Demo user'});
+  if(r.mileage!=null&&(o.mileage==null||r.mileage>o.mileage)) o.mileage=r.mileage; save(); return vehV(); },
+ vehDocAdd:function(x){ var v=veh(), o=vFind(x.vehicleId), id='D'+Date.now().toString(36);
+  o.docs.unshift({id:id,kind:x.kind,at:Date.now(),by:'Demo user'}); if(x.expires){ if(x.kind==='insurance') o.insExpires=x.expires; else o.regExpires=x.expires; }
+  if(String(x.data||'').length<1500000) v.docs[id]={type:x.type,data:x.data}; save(); return vehV(); },
+ vehDocGet:function(id){ var v=veh(); if(v.docs[id]) return v.docs[id]; var o=v.list.filter(function(y){return y.docs.some(function(z){return z.id===id;});})[0], k=o?o.docs.filter(function(z){return z.id===id;})[0].kind:'document';
+  return {type:'application/pdf',data:pdf64('Sample '+(k==='insurance'?'insurance card':'registration'),['Sample Pest Co. demo document',o?o.name+' - '+[o.year,o.make,o.model].join(' ')+' - Plate '+o.plate:'',o?(k==='insurance'?'Policy '+o.policy+' - Expires '+o.insExpires:'Registration expires '+o.regExpires):'','Not a real document. Each company uploads its own.'])}; },
+ vehDocDelete:function(p,id){ pin(p); var v=veh(); v.list.forEach(function(o){ o.docs=o.docs.filter(function(z){return z.id!==id;}); }); delete v.docs[id]; save(); return vehV(); },
+ vehServiceDelete:function(p,id){ pin(p); veh().list.forEach(function(o){ o.history=o.history.filter(function(h){return h.id!==id;}); }); save(); return vehV(); },
+ vehDelete:function(p,id){ pin(p); var v=veh(); v.list=v.list.filter(function(o){return o.id!==id;}); save(); return vehV(); },
+ vehReminders:function(){ var v=veh(); return {scheduled:!!v.email,email:v.email,days:v.days,fallback:'manager@samplepest.example'}; },
+ vehSettings:function(em,dy){ var v=veh(); v.email=em; v.days=String(dy).replace(/\s+/g,''); save(); return {scheduled:true,email:v.email,days:v.days,fallback:'manager@samplepest.example'}; },
+ vehTest:function(){ return {sent:0,note:'Demo only: no email was sent. The live version emails this reminder.'}; }
 };
+window.__demoCfg=function(){ return hubCfg(); };
 window.fetch=function(u,o){ var url=String(u&&u.url||u);
  if(url==='demo-api'){ var b=JSON.parse(o.body), r;
   try{ if(!F[b.fn]) throw new Error('Not in this demo.'); r={ok:true,data:JSON.parse(JSON.stringify(F[b.fn].apply(null,b.args||[])))}; }catch(e){ r={ok:false,error:e.message}; }
@@ -219,10 +297,10 @@ document.addEventListener('DOMContentLoaded',function(){
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Strikes">
+<meta name="apple-mobile-web-app-title" content="Employees">
 <meta name="theme-color" content="#1f2324">
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJQZXN0SHViIj48ZyBzdHJva2U9IiMwNDY3MjUiIHN0cm9rZS13aWR0aD0iMy42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIGZpbGw9Im5vbmUiPjxwYXRoIGQ9Ik0yNiAyNyAxMSAxNk0yNCAzNkg2TTI2IDQ1IDExIDU2TTM4IDI3IDUzIDE2TTQwIDM2SDU4TTM4IDQ1IDUzIDU2Ii8+PC9nPjxnIGZpbGw9IiMwNDY3MjUiPjxjaXJjbGUgY3g9IjExIiBjeT0iMTYiIHI9IjUiLz48Y2lyY2xlIGN4PSI2IiBjeT0iMzYiIHI9IjUiLz48Y2lyY2xlIGN4PSIxMSIgY3k9IjU2IiByPSI1Ii8+PGNpcmNsZSBjeD0iNTMiIGN5PSIxNiIgcj0iNSIvPjxjaXJjbGUgY3g9IjU4IiBjeT0iMzYiIHI9IjUiLz48Y2lyY2xlIGN4PSI1MyIgY3k9IjU2IiByPSI1Ii8+PC9nPjxjaXJjbGUgY3g9IjMyIiBjeT0iMTQiIHI9IjciIGZpbGw9IiMxZjIzMjQiLz48ZWxsaXBzZSBjeD0iMzIiIGN5PSIzNiIgcng9IjExIiByeT0iMTUiIGZpbGw9IiMxZjIzMjQiLz48cGF0aCBkPSJNMzIgMjJWNTEiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyLjQiLz48L3N2Zz4=">
-<title>Attendance Strikes</title>
+<title>Employee Management</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
@@ -400,6 +478,8 @@ select{font:inherit;color:inherit;width:100%;min-height:48px;padding:0 12px;bord
 .foot{margin-top:8px}
 .lock .btn+.btn{margin-top:8px}
 </style>
+<script src="../hub-config.js"></script>
+<script>window.hubCached=window.hubCached||function(key,get,use){/* show the saved copy now, then the fresh one if it changed */var k='hc.'+key,old=null;try{old=localStorage.getItem(k);}catch(e){}if(old){try{use(JSON.parse(old),false);}catch(e){old=null;}}return get().then(function(d){var s=JSON.stringify(d);try{localStorage.setItem(k,s);}catch(e){}if(s!==old)use(d,true);return d;},function(e){if(!old)throw e;});};</script>
 </head>
 <body>
 <div id="app"></div>
@@ -407,7 +487,12 @@ select{font:inherit;color:inherit;width:100%;min-height:48px;padding:0 12px;bord
 var MARK='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJQZXN0SHViIj48ZyBzdHJva2U9IiMwNDY3MjUiIHN0cm9rZS13aWR0aD0iMy42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIGZpbGw9Im5vbmUiPjxwYXRoIGQ9Ik0yNiAyNyAxMSAxNk0yNCAzNkg2TTI2IDQ1IDExIDU2TTM4IDI3IDUzIDE2TTQwIDM2SDU4TTM4IDQ1IDUzIDU2Ii8+PC9nPjxnIGZpbGw9IiMwNDY3MjUiPjxjaXJjbGUgY3g9IjExIiBjeT0iMTYiIHI9IjUiLz48Y2lyY2xlIGN4PSI2IiBjeT0iMzYiIHI9IjUiLz48Y2lyY2xlIGN4PSIxMSIgY3k9IjU2IiByPSI1Ii8+PGNpcmNsZSBjeD0iNTMiIGN5PSIxNiIgcj0iNSIvPjxjaXJjbGUgY3g9IjU4IiBjeT0iMzYiIHI9IjUiLz48Y2lyY2xlIGN4PSI1MyIgY3k9IjU2IiByPSI1Ii8+PC9nPjxjaXJjbGUgY3g9IjMyIiBjeT0iMTQiIHI9IjciIGZpbGw9IiMxZjIzMjQiLz48ZWxsaXBzZSBjeD0iMzIiIGN5PSIzNiIgcng9IjExIiByeT0iMTUiIGZpbGw9IiMxZjIzMjQiLz48cGF0aCBkPSJNMzIgMjJWNTEiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyLjQiLz48L3N2Zz4=';
 (function(){
 var API_URL='demo-api';
-var app=document.getElementById('app'),S={pin:ss('strikes.pin')||'',by:ls('to.by')||'',d:null,tab:'action',who:'',busy:false,err:'',msg:'',add:false,open:'',sure:'',q:'',form:{employee:'',type:'Late notice',date:'',note:''}};
+var app=document.getElementById('app'),S={pin:mgmtPin(),by:ls('to.by')||'',d:null,tab:'action',who:'',busy:false,err:'',msg:'',add:false,open:'',sure:'',q:'',form:{employee:'',type:'Late notice',date:'',note:''}};
+function mgmtPin(){try{var p=sessionStorage.getItem('mgmt.pin'),u=+sessionStorage.getItem('mgmt.until');if(p&&u>Date.now()){sessionStorage.setItem('mgmt.until',String(Date.now()+(+sessionStorage.getItem('mgmt.ttl')||18e5)));return p;}sessionStorage.removeItem('mgmt.pin');sessionStorage.removeItem('mgmt.until');}catch(e){}return '';}
+function mgmtLock(){try{sessionStorage.removeItem('mgmt.pin');sessionStorage.removeItem('mgmt.until');}catch(e){}}
+function loadNames(){if(S.names)return;hubCached('dir',function(){return api('getDirectory',[]);},function(d){var skip=/vendor|supplier|partner/i,seen={},lead=[],rest=[];d.people.forEach(function(p){if(skip.test(p.section||'')||seen[p.name])return;seen[p.name]=1;((p.manager===undefined?/leadership/i.test(p.section||''):p.manager)?lead:rest).push(p.name);});S.names={lead:lead.sort(),rest:rest.sort()};render();}).catch(function(){S.names={lead:[],rest:[],free:true};render();});}
+function whoForm(){var n=S.names,o=function(x){return '<option'+(x===S.by?' selected':'')+'>'+esc(x)+'</option>';},f;if(!n)return '<p class="muted">Loading names…</p>';f=n.free?'<input id="by" autocomplete="name" value="'+esc(S.by)+'">':'<select id="by"><option value="">Pick your name</option><optgroup label="Managers">'+n.lead.map(o).join('')+'</optgroup></select>';return '<form class="lock" id="lf"><h2>Which manager are you?</h2><label class="fld">Your name'+f+'</label>'+(S.err?'<p class="err">'+esc(S.err)+'</p>':'')+'<button class="btn primary">Continue</button>'+(S.asking?'<button type="button" class="btn deny" data-a="managerno">Cancel</button>':'')+'</form>';}
+function asWho(){return '<p class="muted small">Managing as <b>'+esc(S.by)+'</b> · <button class="link" data-a="manager">Change</button></p>';}
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){return null;}}
 function ss(k,v){try{if(v===undefined)return sessionStorage.getItem(k);if(v===null)sessionStorage.removeItem(k);else sessionStorage.setItem(k,v);}catch(e){return null;}}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -415,24 +500,35 @@ function api(fn,args){return fetch(API_URL,{method:'POST',headers:{'Content-Type
 function dt(d){var m=/^(\d{4})-(\d\d)-(\d\d)$/.exec(String(d));return m?new Date(+m[1],+m[2]-1,+m[3]):null;}
 function nice(d){var x=dt(d);return x?x.toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'}):String(d||'');}
 function plural(n,w){return n+' '+w+(n===1?'':'s');}
-function head(){return '<a class="back" href="../index.html#mgmt">← Management</a><div class="brand"><img src="'+MARK+'" alt=""><div class="txt"><b>Attendance Strikes</b><span class="eyebrow">Time off policy tracker</span></div></div>';}
-function dots(n){var h='<span class="dots" role="img" aria-label="'+n+' of 3 active strikes">';for(var i=0;i<3;i++)h+='<i class="'+(i<n?'on':'')+'"></i>';return h+'</span>';}
+function head(){return '<a class="back" href="../index.html#mgmt">← Management</a><div class="brand"><img src="'+MARK+'" alt=""><div class="txt"><b>Employee Management</b><span class="eyebrow">Strikes, start dates and PIN resets</span></div></div>';}
+function dots(n){var h='<span class="dots" role="img" aria-label="'+n+' of '+R().resetAt+' active strikes">';for(var i=0;i<R().resetAt;i++)h+='<i class="'+(i<n?'on':'')+'"></i>';return h+'</span>';}
+function R(){return (S.d&&S.d.rules)||hubRules();}
+function RV(){return R().reviewDays||80;}
 function dis(){return S.busy?' disabled':'';}
 function mailOf(n){var p=(S.d.team||[]).filter(function(x){return x.name===n;})[0];return p?p.email:'';}
 function reasonSel(){return '<label class="fld">Reason<select id="why"><option value="">Pick a reason</option>'+S.d.exc.map(function(e){return '<option>'+esc(e)+'</option>';}).join('')+'</select></label><label class="fld">Note (optional)<input id="nt" maxlength="200" placeholder="Don\'t include medical details"></label>';}
 function shareBits(i){return '<label class="fld">Employee email<input id="em'+esc(i.incident)+'" type="email" autocomplete="off" value="'+esc(mailOf(i.employee))+'"></label><div class="acts"><button class="btn primary" data-a="mail" data-i="'+esc(i.incident)+'"'+dis()+'>Email notice</button><button class="btn deny" data-a="person" data-i="'+esc(i.incident)+'"'+dis()+'>Told in person</button></div>';}
+function addMo(s,n){var y=new Date(s.getFullYear(),s.getMonth()+n,1),last=new Date(y.getFullYear(),y.getMonth()+1,0).getDate();y.setDate(Math.min(s.getDate(),last));return y;}
+function tenure(s,t){var a=dt(s),b=dt(t),k=(b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth();if(addMo(a,k)>b)k--;return plural(Math.floor(k/12),'year')+', '+plural(k%12,'month')+', '+plural(Math.round((b-addMo(a,k))/864e5),'day');}
+function addDay(s,n){var x=dt(s);x.setDate(x.getDate()+n);return x.getFullYear()+'-'+('0'+(x.getMonth()+1)).slice(-2)+'-'+('0'+x.getDate()).slice(-2);}
+function sheetLink(w){var u=(S.d.starts||{}).url;return u?'<a class="pdfl" href="'+esc(u)+'" target="_blank" rel="noopener">'+w+'</a>':'';}
+function startsNote(){var s=S.d.starts;if(!s)return '';var open=s.total-s.entered,h='<section class="card req"><div class="row"><b>Start dates</b><span class="tag '+(open?'':'ok')+'">'+s.entered+' of '+s.total+'</span></div>';if(s.bad.length)h+='<span class="meta latetxt">Fix '+esc(s.bad.join(', '))+': '+(s.bad.length===1?'that date is':'those dates are')+' not readable.</span>';return h+sheetLink(open?'Enter start dates in the sheet':'Open the start dates sheet')+'</section>';}
+function jobCard(p){var t=S.d.today,h='<section class="card"><b>Employment</b>';if(!p.start)return h+'<span class="meta">No start date yet.</span>'+sheetLink('Enter it in the sheet')+'</section>';if(t<p.start)h+='<span class="meta">Starts '+esc(nice(p.start))+'</span>';else h+='<span class="meta">Started '+esc(nice(p.start))+' · '+esc(tenure(p.start,t))+'</span>';var due=addDay(p.start,RV());
+  if(/^\d{4}-/.test(p.reviewDone||''))h+='<span class="meta">'+RV()+'-day review done '+esc(nice(p.reviewDone))+'</span>';else if(p.reviewDone)h+='<span class="meta">'+RV()+'-day review done</span>';else if(S.d.todo.some(function(x){return x.k==='hire80'&&x.name===p.name&&x.late;}))h+='<span class="meta latetxt">'+RV()+'-day review was due '+esc(nice(due))+'</span>';else if(t<=due)h+='<span class="meta">'+RV()+'-day review due '+esc(nice(due))+'</span>';
+  return h+sheetLink('Edit in the sheet')+'</section>';}
 function todoCard(t){
+  if(t.k==='hire80')return '<div class="card req"><div class="row"><b>'+esc(t.name)+'</b><span class="tag '+(t.late?'bad':'')+'">'+(t.late?'Overdue':''+RV()+'-day review')+'</span></div><span class="meta">'+[t.branch,'Started '+nice(t.start)].filter(Boolean).map(esc).join(' · ')+'</span><span class="meta '+(t.late?'latetxt':'')+'">'+RV()+'-day review '+(t.late?'was due ':'due ')+esc(nice(t.due))+(t.days>0?' (in '+plural(t.days,'day')+')':t.days===0?' (today)':' ('+plural(-t.days,'day')+' ago)')+'</span><div class="acts"><button class="btn primary" data-a="r80" data-w="'+esc(t.name)+'"'+dis()+'>Mark review done</button></div></div>';
   if(t.k==='review'){var r=t.r,o=S.open===r.id,n=+r.notice;var h='<div class="card req"><div class="row"><b>'+esc(r.name)+'</b><span class="tag">Review</span></div><span class="meta">Asked for '+esc(nice(r.start))+' with '+plural(n,'day')+'\' notice. Request is '+esc(r.status.toLowerCase())+'.</span>';
     if(o)return h+reasonSel()+'<div class="acts"><button class="btn primary" data-a="nostrike" data-r="'+esc(r.id)+'"'+dis()+'>Save, no strike</button><button class="btn deny" data-a="cancel">Cancel</button></div></div>';
     return h+'<div class="acts"><button class="btn primary" data-a="reqstrike" data-r="'+esc(r.id)+'"'+dis()+'>Issue 1 strike</button><button class="btn deny" data-a="openr" data-r="'+esc(r.id)+'">No strike</button></div></div>';}
   if(t.k==='share'){var i=t.i;return '<div class="card req"><div class="row"><b>'+esc(i.employee)+'</b><span class="tag '+(t.late?'bad':'')+'">'+(t.late?'Overdue':'Share')+'</span></div><span class="meta">'+esc(i.type)+' · '+plural(i.count,'strike')+' · '+esc(nice(i.incidentDate))+'</span><span class="meta '+(t.late?'latetxt':'')+'">Share in writing by '+esc(nice(i.shareBy))+'</span>'+shareBits(i)+'</div>';}
   if(t.k==='dispute'){var d=t.i;return '<div class="card req"><div class="row"><b>'+esc(d.employee)+'</b><span class="tag">Dispute</span></div><span class="meta">'+esc(d.type)+' · '+esc(nice(d.incidentDate))+' · disputed '+esc(nice(d.disputed))+'</span><span class="meta">Enter the owner\'s decision.</span><div class="acts"><button class="btn primary" data-a="uphold" data-i="'+esc(d.incident)+'"'+dis()+'>Strike stands</button><button class="btn deny" data-a="overturn" data-i="'+esc(d.incident)+'"'+dis()+'>Overturn</button></div></div>';}
-  if(t.k==='reset'){var x=t.r,c='<div class="card req"><div class="row"><b>'+esc(x.employee)+'</b><span class="tag '+(t.late?'bad':'')+'">3 strikes</span></div><span class="meta">Reached 3 on '+esc(nice(x.reached))+'. Strikes reset to zero.</span>';
+  if(t.k==='reset'){var x=t.r,c='<div class="card req"><div class="row"><b>'+esc(x.employee)+'</b><span class="tag '+(t.late?'bad':'')+'">Strike limit</span></div><span class="meta">Reached the strike limit on '+esc(nice(x.reached))+'. Strikes reset to zero.</span>';
     c+=step(x,'donuts','Team make-good step complete','')+step(x,'meeting','Reset meeting held','Due by '+nice(x.meetingDue));
     if(x.pip)c+='<div class="warnbox"><b>Second time within 12 months.</b> A formal performance improvement plan is the next step.</div>'+step(x,'pipDone','Performance improvement plan started','');
     return c+'</div>';}
   if(t.k==='pto'){var q=t.r;return '<div class="card req"><div class="row"><b>'+esc(q.name)+'</b><span class="tag bad">PTO</span></div><span class="meta">'+esc(t.msg)+'</span><span class="meta">'+esc(nice(q.start))+(q.end&&q.end!==q.start?' to '+esc(nice(q.end)):'')+' · '+plural(+q.hours||0,'hour')+'</span><a class="btn deny linkbtn" href="../time-off-tracker/index.html">Open Time Off Tracker</a></div>';}
-  var p=t.p;return '<div class="card req"><div class="row"><b>'+esc(p.name)+'</b><span class="tag ok">90 days clean</span></div><span class="meta">No new strikes for 90 days. You may remove the oldest active strike.</span><div class="acts"><button class="btn primary" data-a="remove" data-w="'+esc(p.name)+'"'+dis()+'>Remove oldest strike</button></div></div>';}
+  var p=t.p;return '<div class="card req"><div class="row"><b>'+esc(p.name)+'</b><span class="tag ok">'+R().cleanDays+' days clean</span></div><span class="meta">No new strikes for '+R().cleanDays+' days. You may remove the oldest active strike.</span><div class="acts"><button class="btn primary" data-a="remove" data-w="'+esc(p.name)+'"'+dis()+'>Remove oldest strike</button></div></div>';}
 function step(x,f,l,sub){return x[f]?'<div class="step done"><span>✓ '+esc(l)+'</span><small>'+esc(nice(x[f]))+'</small></div>':'<div class="step"><span>'+esc(l)+(sub?'<small>'+esc(sub)+'</small>':'')+'</span><button class="btn deny" data-a="mark" data-id="'+esc(x.id)+'" data-f="'+f+'"'+dis()+'>Mark done</button></div>';}
 function incCard(i){var st=i.state,h='<div class="card req"><div class="row"><b>'+esc(i.type)+'</b><span class="tag '+(st==='Active'?'bad':'')+'">'+esc(st==='Active'&&i.live<i.count?i.live+' of '+i.count+' active':st)+'</span></div><span class="meta">'+[nice(i.incidentDate),i.count?plural(i.count,'strike'):'',i.by?'by '+i.by:''].filter(Boolean).map(esc).join(' · ')+'</span>';
   if(i.note)h+='<span class="meta">'+esc(i.note)+'</span>';
@@ -446,40 +542,46 @@ function incCard(i){var st=i.state,h='<div class="card req"><div class="row"><b>
   return h+'</div>';}
 function personView(){var p=S.d.team.filter(function(x){return x.name===S.who;})[0]||{name:S.who,active:0,resets12:0},l=S.d.incidents.filter(function(i){return i.employee===S.who;});
   var h='<button class="back asbtn" data-a="backteam">← Team</button><section class="card"><div class="row"><div><h2>'+esc(p.name)+'</h2><span class="meta">'+esc(p.branch||'')+'</span></div>'+dots(p.active)+'</div><span class="meta">'+plural(p.active,'active strike')+' · '+plural(p.resets12,'reset')+' in the last 12 months</span>'+(p.active&&!p.removable&&p.removeOn?'<span class="meta">Oldest strike can come off early on '+esc(nice(p.removeOn))+' if there are no new strikes</span>':'')+'</section>';
-  var q=p.pto||{};h+='<section class="card"><div class="row"><b>PTO '+esc(q.year||'')+'</b><span class="tag '+(q.eligible?'ok':'')+'">'+(q.eligible?plural(q.left,'hour')+' left':'No PTO')+'</span></div>'+(q.eligible?'<span class="meta">'+plural(q.used+q.prior,'hour')+' used · '+plural(q.scheduled,'hour')+' scheduled · '+plural(q.pending,'hour')+' pending</span>':'')+'<label class="fld">Gets PTO<select id="pe"><option value="Yes"'+(q.eligible?' selected':'')+'>Yes</option><option value=""'+(q.eligible?'':' selected')+'>No</option></select></label><label class="fld">Hours per year<input id="pa" inputmode="numeric" value="'+esc(q.eligible?q.allowance:80)+'"></label><label class="fld">Hours used this year before the app<input id="pp" inputmode="numeric" value="'+esc(q.eligible?q.prior:0)+'"></label><div class="acts"><button class="btn deny" data-a="savepto" data-w="'+esc(p.name)+'"'+dis()+'>Save PTO</button></div></section>';
+  h+=jobCard(p);
+  var q=p.pto||{};h+='<section class="card"><div class="row"><b>PTO '+esc(q.year||'')+'</b><span class="tag '+(q.eligible?'ok':'')+'">'+(q.eligible?plural(q.left,'hour')+' left':'No PTO')+'</span></div>'+(q.eligible?'<span class="meta">'+plural(q.used+q.prior,'hour')+' used · '+plural(q.scheduled,'hour')+' scheduled · '+plural(q.pending,'hour')+' pending</span>':'')+'<label class="fld">Gets PTO<select id="pe"><option value="Yes"'+(q.eligible?' selected':'')+'>Yes</option><option value=""'+(q.eligible?'':' selected')+'>No</option></select></label><label class="fld">Hours per year<input id="pa" inputmode="numeric" value="'+esc(q.eligible?q.allowance:R().ptoHours)+'"></label><label class="fld">Hours used this year before the app<input id="pp" inputmode="numeric" value="'+esc(q.eligible?q.prior:0)+'"></label><div class="acts"><button class="btn deny" data-a="savepto" data-w="'+esc(p.name)+'"'+dis()+'>Save PTO</button></div></section>';
   var rs=S.d.resets.filter(function(r){return r.employee===S.who;});
   h+='<section class="card"><div class="row"><b>My Dashboard PIN</b><span class="tag '+(p.hasPin?'ok':'')+'">'+(p.hasPin?'Own PIN':'Temporary PIN')+'</span></div><span class="meta">'+(p.hasPin?'If they forget their PIN, reset it. They\'ll sign in with the temporary PIN and choose a new one.':'They sign in with the temporary PIN and choose their own the first time.')+'</span>'+(p.hasPin?'<div class="acts"><button class="btn deny" data-a="setpin" data-w="'+esc(p.name)+'"'+dis()+'>Reset to temporary PIN</button></div>':'')+'</section>';
   rs.forEach(function(r){if(!r.donuts||!r.meeting||(r.pip&&!r.pipDone))h+=todoCard({k:'reset',r:r});});
   return h+(l.length?'<div class="list">'+l.map(incCard).join('')+'</div>':'<p class="muted">No strike history.</p>');}
-function addView(){var f=S.form,p=S.d.team;return '<form class="card lockf" id="af"><h2>Add a strike</h2><label class="fld">Employee<select id="ae"><option value="">Pick a name</option>'+p.map(function(x){return '<option'+(x.name===f.employee?' selected':'')+'>'+esc(x.name)+'</option>';}).join('')+'</select></label><label class="fld">What happened<select id="at"><option value="Late notice"'+(f.type==='Late notice'?' selected':'')+'>Under 3 days\' notice: 1 strike</option><option value="No-call/no-show"'+(f.type==='No-call/no-show'?' selected':'')+'>No-call/no-show: 2 strikes</option></select></label><label class="fld">Date missed<input id="ad" type="date" value="'+esc(f.date)+'"></label><label class="fld">Note (optional)<input id="an" maxlength="200" value="'+esc(f.note)+'" placeholder="Don\'t include medical details"></label><div class="warnbox">Check the policy exceptions first. Illness, family emergencies, a death in the family, car trouble, unsafe weather, jury duty and protected leave never count.</div><div class="acts"><button class="btn primary"'+dis()+'>Issue strike</button><button type="button" class="btn deny" data-a="noadd">Cancel</button></div></form>';}
+function startsView(){var d=S.d,l=d.team.slice().sort(function(a,b){return (a.start?1:0)-(b.start?1:0)||(a.name<b.name?-1:1);});return startsNote()+'<div class="list">'+l.map(function(p){var r=d.todo.filter(function(x){return x.k==='hire80'&&x.name===p.name;})[0];return '<button class="card person" data-w="'+esc(p.name)+'" data-a="who"><span><b>'+esc(p.name)+'</b><small>'+(p.start?(d.today<p.start?'Starts '+esc(nice(p.start)):'Started '+esc(nice(p.start))+' · '+esc(tenure(p.start,d.today))):'No start date yet')+'</small></span>'+(r?'<span class="tag '+(r.late?'bad':'')+'">'+(r.late?'Review overdue':'Review due')+'</span>':'')+'</button>';}).join('')+'</div>';}
+function pinsView(){var l=S.d.team.slice().sort(function(a,b){return a.name<b.name?-1:1;});return '<p class="muted small">If someone forgets their My Dashboard PIN, reset it. They sign in with the temporary PIN and choose a new one.</p><div class="list">'+l.map(function(p){var k='pin:'+p.name,b=p.hasPin?(S.sure===k?'<div class="acts"><button class="btn primary" data-a="setpin" data-w="'+esc(p.name)+'"'+dis()+'>Yes, reset PIN</button><button class="btn deny" data-a="sure" data-i="">Cancel</button></div>':'<div class="acts"><button class="btn deny" data-a="sure" data-i="'+esc(k)+'">Reset to temporary PIN</button></div>'):'';return '<div class="card req"><div class="row"><b>'+esc(p.name)+'</b><span class="tag '+(p.hasPin?'ok':'')+'">'+(p.hasPin?'Own PIN':'Temporary PIN')+'</span></div>'+b+'</div>';}).join('')+'</div>';}
+function addView(){var f=S.form,p=S.d.team;return '<form class="card lockf" id="af"><h2>Add a strike</h2><label class="fld">Employee<select id="ae"><option value="">Pick a name</option>'+p.map(function(x){return '<option'+(x.name===f.employee?' selected':'')+'>'+esc(x.name)+'</option>';}).join('')+'</select></label><label class="fld">What happened<select id="at"><option value="Late notice"'+(f.type==='Late notice'?' selected':'')+'>Under '+R().noticeDays+' days\' notice: 1 strike</option><option value="No-call/no-show"'+(f.type==='No-call/no-show'?' selected':'')+'>No-call/no-show: '+R().ncnsStrikes+' strikes</option></select></label><label class="fld">Date missed<input id="ad" type="date" value="'+esc(f.date)+'"></label><label class="fld">Note (optional)<input id="an" maxlength="200" value="'+esc(f.note)+'" placeholder="Don\'t include medical details"></label><div class="warnbox">Check the policy exceptions first: '+esc(S.d.exc.join(', '))+'.</div><div class="acts"><button class="btn primary"'+dis()+'>Issue strike</button><button type="button" class="btn deny" data-a="noadd">Cancel</button></div></form>';}
 function main(){var d=S.d,h=head();
   if(S.err)h+='<p class="err">'+esc(S.err)+'</p>';
   if(S.msg)h+='<p class="okmsg">'+esc(S.msg)+'</p>';
   if(S.add)return h+addView();
   if(S.who)return h+personView();
-  h+='<div class="chips">'+[['action','Needs action ('+d.todo.length+')'],['team','Team'],['log','History']].map(function(x){return '<button class="chip" data-t="'+x[0]+'" aria-pressed="'+(S.tab===x[0])+'">'+x[1]+'</button>';}).join('')+'<button class="chip add" data-a="add">+ Add strike</button></div>';
+  h+='<div class="chips">'+[['action','Needs action ('+d.todo.length+')'],['team','Team'],['start','Start dates'],['pins','PIN resets'],['log','Strike history']].map(function(x){return '<button class="chip" data-t="'+x[0]+'" aria-pressed="'+(S.tab===x[0])+'">'+x[1]+'</button>';}).join('')+'<button class="chip add" data-a="add">+ Add strike</button></div>';
   if(S.tab==='action')h+=d.todo.length?'<div class="list">'+d.todo.map(todoCard).join('')+'</div>':'<p class="muted">Nothing needs action.</p>';
   if(S.tab==='team'){var t=d.team.slice().sort(function(a,b){return b.active-a.active||(a.name<b.name?-1:1);});h+='<div class="list">'+t.map(function(p){return '<button class="card person" data-w="'+esc(p.name)+'" data-a="who"><span><b>'+esc(p.name)+'</b><small>'+esc(p.branch||'')+'</small></span>'+dots(p.active)+'</button>';}).join('')+'</div>';}
+  if(S.tab==='start')h+=startsView();
+  if(S.tab==='pins')h+=pinsView();
   if(S.tab==='log')h+=d.incidents.length?'<div class="list">'+d.incidents.map(function(i){return '<div class="stack"><span class="who">'+esc(i.employee)+'</span>'+incCard(i)+'</div>';}).join('')+'</div>':'<p class="muted">Nothing logged yet.</p>';
-  return h+'<p class="muted small"><button class="link" data-a="lock">Lock</button></p>';}
-function lockView(){return head()+'<form class="lock" id="lf"><h2>Managers</h2><label class="fld">Your name<input id="by" autocomplete="name" value="'+esc(S.by)+'"></label><label class="fld">Management PIN<input id="pn" placeholder="Demo PIN: 1234" type="password" inputmode="numeric" autocomplete="off"></label>'+(S.err?'<p class="err">'+esc(S.err)+'</p>':'')+'<button class="btn primary"'+dis()+'>'+(S.busy?'Opening…':'Open')+'</button></form>';}
-function render(){var y=window.scrollY;app.innerHTML=S.d?main():lockView();window.scrollTo(0,y);}
+  return h+asWho()+'<p class="muted small"><button class="link" data-a="lock">Lock</button></p>';}
+function lockView(){return head()+(!S.pin?'<div class="lock"><h2>Managers only</h2><p class="muted">Open this from the Management section.</p>'+(S.err?'<p class="err">'+esc(S.err)+'</p>':'')+'<a class="btn primary" style="text-decoration:none;display:flex;align-items:center;justify-content:center" href="../index.html#mgmt">Go to Management</a></div>':S.busy?'<p class="muted">Opening…</p>':whoForm());}
+function render(){var y=window.scrollY;app.innerHTML=S.d&&!S.asking?main():lockView();window.scrollTo(0,y);}
 function act(fn,args,msg){S.busy=true;S.err='';S.msg='';render();return api(fn,[S.pin].concat(args)).then(function(d){S.d=d;S.busy=false;S.open='';S.sure='';S.msg=msg||'';render();return true;}).catch(function(x){S.busy=false;S.err=/fetch|network/i.test(String(x.message))?'Could not save. Check your connection and try again.':String(x.message||x);render();return false;});}
 function reqOf(id){return S.d.todo.filter(function(t){return t.k==='review'&&t.r.id===id;})[0].r;}
 function brOf(n,fb){var p=S.d.team.filter(function(x){return x.name===n;})[0];return p?p.branch:fb;}
 app.addEventListener('submit',function(e){e.preventDefault();
-  if(e.target.id==='lf'){var by=document.getElementById('by').value.trim(),pn=document.getElementById('pn').value.trim();S.by=by;if(!by||!pn){S.err='Enter your name and the PIN.';render();return;}S.pin=pn;S.busy=true;S.err='';render();
-    api('strikeData',[pn]).then(function(d){S.d=d;S.busy=false;ls('to.by',by);ss('strikes.pin',pn);render();}).catch(function(x){S.busy=false;S.pin='';S.err=String(x.message||x);render();});}
+  if(e.target.id==='lf'){var by=document.getElementById('by').value.trim();if(!by){S.err='Pick your name.';render();return;}S.by=by;ls('to.by',by);S.err='';S.asking=false;if(S.d)render();else enter();}
   if(e.target.id==='af'){var g=function(i){return document.getElementById(i).value;},f=S.form={employee:g('ae'),type:g('at'),date:g('ad'),note:g('an').trim()};S.err=!f.employee?'Pick the employee.':!f.date?'Pick the date.':'';if(S.err){render();return;}
-    act('strikeIssue',[{employee:f.employee,branch:brOf(f.employee,''),type:f.type,incidentDate:f.date,note:f.note,by:S.by}],'Strike added. Share it with the employee within 2 working days.').then(function(ok){if(ok){S.add=false;S.form={employee:'',type:'Late notice',date:'',note:''};S.tab='action';render();}});}});
+    act('strikeIssue',[{employee:f.employee,branch:brOf(f.employee,''),type:f.type,incidentDate:f.date,note:f.note,by:S.by}],'Strike added. Share it with the employee within '+R().shareDays+' working days.').then(function(ok){if(ok){S.add=false;S.form={employee:'',type:'Late notice',date:'',note:''};S.tab='action';render();}});}});
 app.addEventListener('click',function(e){var t=e.target.closest('button');if(!t)return;var a=t.dataset.a,i=t.dataset.i;
   if(t.dataset.t){S.tab=t.dataset.t;S.msg='';S.err='';render();}
-  if(a==='lock'){ss('strikes.pin',null);S.pin='';S.d=null;S.err='';render();}
+  if(a==='lock'){mgmtLock();S.pin='';S.d=null;S.err='';render();}
+  if(a==='manager'){S.asking=true;S.err='';loadNames();render();}
+  if(a==='managerno'){S.asking=false;S.err='';render();}
   if(a==='add'){S.add=true;S.msg='';render();}if(a==='noadd'){S.add=false;S.err='';render();}
   if(a==='who'){S.who=t.dataset.w;S.msg='';render();window.scrollTo(0,0);}if(a==='backteam'){S.who='';render();}
   if(a==='openr'){S.open=t.dataset.r;render();}if(a==='cancel'){S.open='';render();}
   if(a==='sure'){S.sure=i;render();}
-  if(a==='reqstrike'){var r=reqOf(t.dataset.r);act('strikeIssue',[{employee:r.name,branch:r.branch,type:'Late notice',incidentDate:r.start,note:'',by:S.by,requestId:r.id}],'Strike issued. Share it within 2 working days.');}
+  if(a==='reqstrike'){var r=reqOf(t.dataset.r);act('strikeIssue',[{employee:r.name,branch:r.branch,type:'Late notice',incidentDate:r.start,note:'',by:S.by,requestId:r.id}],'Strike issued. Share it within '+R().shareDays+' working days.');}
   if(a==='nostrike'){var w=document.getElementById('why').value,q=reqOf(t.dataset.r);if(!w){S.err='Pick the reason.';render();return;}act('strikeNoStrike',[{employee:q.name,branch:q.branch,incidentDate:q.start,reason:w,note:document.getElementById('nt').value.trim(),by:S.by,requestId:q.id}],'Saved. No strike.');}
   if(a==='mail')act('strikeShare',[i,'Email',document.getElementById('em'+i).value.trim()],'Marked as emailed. No email is sent in this demo.');
   if(a==='person')act('strikeShare',[i,'In person',''],'Marked as shared.');
@@ -489,10 +591,12 @@ app.addEventListener('click',function(e){var t=e.target.closest('button');if(!t)
   if(a==='mistake')act('strikeDecide',[i,'Overturned',{by:S.by,mistake:true}],'Removed from the count.');
   if(a==='remove')act('strikeRemove',[t.dataset.w,S.by],'Oldest strike removed.');
   if(a==='setpin')act('strikeSetPin',[t.dataset.w,S.by],'PIN reset. They will choose a new one when they sign in.');
+  if(a==='r80')act('strikeReviewDone',[t.dataset.w,S.by],'Review marked done.');
   if(a==='savepto')act('strikePto',[t.dataset.w,{eligible:document.getElementById('pe').value,allowance:document.getElementById('pa').value.trim(),prior:document.getElementById('pp').value.trim()},S.by],'PTO saved.');
   if(a==='mark')act('strikeMark',[t.dataset.id,t.dataset.f,S.by],'Saved.');});
 if(window.PREVIEW_API)api=window.PREVIEW_API;
-if(S.pin){S.busy=true;render();api('strikeData',[S.pin]).then(function(d){S.d=d;S.busy=false;render();}).catch(function(){S.busy=false;S.pin='';ss('strikes.pin',null);render();});}else render();
+function enter(){S.busy=true;S.err='';render();api('strikeData',[S.pin]).then(function(d){S.d=d;S.busy=false;render();}).catch(function(x){S.busy=false;S.err=String(x.message||x);if(/pin/i.test(S.err)){S.pin='';mgmtLock();}render();});}
+if(S.pin&&S.by)enter();else{if(S.pin)loadNames();render();}
 })();
 </script>
 </body>

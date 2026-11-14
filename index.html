@@ -299,11 +299,11 @@ footer small{color:var(--muted);font-size:.9rem}
     <div class="pcopy"><h3 id="pt"></h3><p id="pp"></p><ul id="pl"></ul><a class="btn primary" id="pa" href="app/index.html">Explore the Tools</a></div>
     <div class="pstage" aria-hidden="true"><div class="phone"><div class="screen" id="ps"></div></div></div>
   </div>
-  <p class="more rv">Also in the demo: My Dashboard, Attendance Strikes, Mix Calculator, Measure, Trail Cams, CSR Playbook, CSR Manual, KPIs, Commissions, Directory, Handbook &amp; Policies and Signed Documents. <a href="#all-features">See the full list</a>.</p>
+  <p class="more rv">Also in the demo: My Dashboard, Vehicles, Employee Management, Admin, Mix Calculator, Measure, Trail Cams, CSR Playbook, CSR Manual, KPIs, Commissions, Directory, Handbook &amp; Policies and Signed Documents. <a href="#all-features">See the full list</a>.</p>
 </div></section>
 
 <section class="all" id="all-features"><div class="wrap">
-  <div class="head center rv"><span class="eyebrow">Everything Included</span><h2>Every Tool and Function in PestHub.</h2><p>23 tools for your whole team, with 3 more on the way.</p></div>
+  <div class="head center rv"><span class="eyebrow">Everything Included</span><h2>Every Tool and Function in PestHub.</h2><p>25 tools for your whole team, with 2 more on the way.</p></div>
   <div class="custom rv">
     <div><h3>Customized for Your Company</h3><p>The demo shows one sample company. Your PestHub is customized to your company’s operations and policies, so it works the way your business already does.</p></div>
     <ul><li>Your services and pricing</li><li>Your SOPs and field guide</li><li>Your products and mix rates</li><li>Your handbook and policies</li><li>Your attendance and time off rules</li><li>Your commission structure and KPIs</li></ul>
@@ -323,7 +323,7 @@ footer small{color:var(--muted);font-size:.9rem}
     <div class="roles rv">
       <div class="role"><h3>Technicians</h3><p>Field guides, SOPs, mix rates, labels and trap checks on their phone.</p></div>
       <div class="role"><h3>Office Staff</h3><p>Call playbooks, approved pricing and scripts while the customer is on the line.</p></div>
-      <div class="role"><h3>Managers</h3><p>Licenses, time off, attendance, onboarding and signed documents in one place.</p></div>
+      <div class="role"><h3>Managers</h3><p>Licenses, time off, attendance, vehicles, onboarding and signed documents in one place.</p></div>
       <div class="role"><h3>The Shop</h3><p>Know what was taken, who has it and when it’s time to restock.</p></div>
     </div>
   </div>
@@ -379,6 +379,7 @@ var TOOLS=[
  {n:'Pricing',s:'app/pricing/index.html',h:'One Price List for Everyone',p:'Standard prices and floors for each service, ready before the customer asks.',l:['Organized by service','Floor prices stay consistent','Managers update it behind a PIN']},
  {n:'Inventory',s:'app/shop/index.html',h:'Know What Left the Shop',p:'Techs tap their name and what they took, so counts stay current.',l:['Separate inventory for each branch','Every checkout logged by name and time','Restock email alerts']},
  {n:'Equipment',s:'app/equipment/index.html',h:'See Who Has What',p:'Track traps, cameras and gear without calling around.',l:['Check gear in and out','See what’s out and with whom','Spot items out for over a week']},
+ {n:'Vehicles',s:'app/vehicles/index.html',h:'Never Miss a Renewal or Oil Change',p:'See every truck’s registration, insurance and oil change status at a glance.',l:['Overdue and due-soon vehicles at the top','Log service with mileage and cost','Insurance cards on every tech’s phone']},
  {n:'Trap Checks',s:'app/traps/index.html',h:'Every Trap, Checked on Time',p:'Set the check schedule when the trap goes out and let the list show what’s due.',l:['Overdue traps rise to the top','Log catches and pulls','Filter by tech or branch']},
  {n:'Licenses',s:'app/licenses/index.html',h:'Stay Ahead of Renewals',p:'See every applicator license and when it expires.',l:['Expired and due-soon counts','Reminder emails on your schedule','Organized by technician']},
  {n:'SDS & Labels',s:'app/sds/index.html',h:'Safety Sheets One Tap Away',p:'Keep your product list, SDS and labels within reach on every job.',l:['Search your product list','Open labels from the field','Mixing notes alongside safety data']},
@@ -388,9 +389,9 @@ var TOOLS=[
 ];
 var FEATURES=[
  {g:'Across the Whole App',d:'Built into PestHub everywhere your team uses it.',t:[
-  {n:'Your Hub',s:'Home screen for the whole company',u:'',l:['Search anything from the home screen','Sections for Operations, Office Staff and Management','Choose which tools show on each phone','Manager-only areas protected by a PIN','Opens from a link and saves to the home screen, with no app store','Trap checks, product checkouts and equipment changes held offline, then sent when signal returns']}]},
+  {n:'Your Hub',s:'Home screen for the whole company',u:'',l:['Search anything from the home screen','Sections for Operations, Office Staff and Management','Choose which tools show on each phone','One Management unlock opens every manager tool','Tools open instantly from the last saved copy, then refresh','Opens from a link and saves to the home screen, with no app store','Trap checks, product checkouts and equipment changes held offline, then sent when signal returns']}]},
  {g:'For Everyone',d:'Tools every employee can use.',t:[
-  {n:'My Dashboard',s:'Your attendance and time off',u:'me',l:['Personal sign-in with name and PIN','See your attendance strikes and resets','See your time off balance and requests','Delete a time off request']},
+  {n:'My Dashboard',s:'Your attendance, time off and vehicle',u:'me',l:['Personal sign-in with name and PIN','See how long you’ve been with the company','See your assigned vehicle, insurance card and registration','See your attendance strikes and resets','See your time off balance and requests','Delete a time off request']},
   {n:'Directory',s:'Team contacts',u:'directory',l:['Call, text or email anyone on the team','Names, roles and branches in one place']},
   {n:'Time Off',s:'Request days off',u:'time-off',l:['Request paid or unpaid days off','See the status of your requests','Short-notice requests are flagged']},
   {n:'Handbook & Policies',s:'Read and sign',u:'policies',l:['Read the handbook and company policies','Sign on your phone','See what still needs your signature','Signed copies are saved for the office']}]},
@@ -403,6 +404,7 @@ var FEATURES=[
   {n:'Trail Cams',s:'Check your cameras',u:'',l:['Open your SPYPOINT account from the hub']},
   {n:'Equipment',s:'Traps, cameras and gear',u:'equipment',l:['Check gear in and out','See what’s out and with whom','Spot items out for over a week','Managers add, edit and remove items']},
   {n:'Inventory',s:'Shop supplies in and out',u:'shop',l:['Check out and return products by name','Separate inventory for each branch','Every transaction logged by name and time','Restock email alerts','Managers restock and edit products and the tech list']},
+  {n:'Vehicles',s:'Registration, insurance, oil and repairs',u:'vehicles',l:['Registration and insurance expiration dates','Oil change reminders by date or mileage','Log maintenance and repairs with costs','Upload insurance cards and registrations','Daily email reminders']},
   {n:'Measure',s:'Lawn and property square footage',u:'measure',l:['Search an address on the map','Tap the corners to measure an area','Measure more than one area on a property']},
   {n:'Onboarding',s:'New tech checklist',u:'onboarding',l:['Start a checklist for each new hire','Track progress and who completed each step','Supervisor signs off on the phone']}]},
  {g:'For Office Staff',d:'What CSRs and sales need while the customer is on the line.',t:[
@@ -414,10 +416,11 @@ var FEATURES=[
   {n:'KPIs',s:'Weekly company numbers',u:'kpis',l:['Manager PIN required','Vehicle revenue and office numbers','Tech time on job and reservices','Week-by-week history']},
   {n:'Licenses',s:'Applicator licenses and renewals',u:'licenses',l:['Add, edit and remove licenses','Expired and due-soon counts','Reminder emails on your schedule','Organized by technician']},
   {n:'Time Off Tracker',s:'Approve and track requests',u:'time-off-tracker',l:['Approve or deny with a reason','Short notice is flagged','Track what still needs scheduling']},
-  {n:'Attendance Strikes',s:'Track strikes and resets',u:'strikes',l:['Customized to your company’s attendance policy','Issue a strike or record a no-strike decision','Log when a strike is shared and handle disputes','Track resets and follow-ups','Set time off allowances for each employee']},
-  {n:'Signed Documents',s:'Who has signed what',u:'signatures',l:['See signatures for each employee and document','Filter to who still needs to sign']}]}
+  {n:'Employee Management',s:'Strikes, start dates and PIN resets',u:'strikes',l:['Attendance strikes customized to your company’s policy','Issue a strike or record a no-strike decision','Log when a strike is shared and handle disputes','Start dates, time with the company and 80-day review reminders','Reset a forgotten My Dashboard PIN','Set time off allowances for each employee']},
+  {n:'Signed Documents',s:'Who has signed what',u:'signatures',l:['See signatures for each employee and document','Filter to who still needs to sign','Only counts the documents each person is required to sign']},
+  {n:'Admin',s:'Settings without a developer',u:'admin',l:['Add and edit employees, start dates and managers','Rename, hide and reorder Hub tiles','Branches, alert emails and policy rules','Choose who must sign each document','Edit the onboarding checklist']}]}
 ];
-var SOON=[['Training','Tech training and sign-offs'],['Sales','Scripts, leads and quotes'],['Admin','Manager settings and records']];
+var SOON=[['Training','Tech training and sign-offs'],['Sales','Scripts, leads and quotes']];
 (function(){ var box=document.getElementById('fnlist'), mq=matchMedia('(max-width:640px)'), chev='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
  box.innerHTML=FEATURES.map(function(g){ return '<div class="all-group"><h3 class="rv">'+esc(g.g)+'</h3><p class="rv">'+esc(g.d)+'</p><div class="fgrid">'+g.t.map(function(t){
