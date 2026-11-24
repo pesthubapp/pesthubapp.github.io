@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>PestHub | One Hub for Your Pest Control Operation</title>
 <meta name="description" content="PestHub is an internal operations hub for pest and wildlife companies. We build it for you, hand it over and teach you to make changes. One-time setup. Pricing, procedures, inventory, equipment and field tools in one place.">
-<meta name="theme-color" content="#046725">
+<meta name="theme-color" content="#1f5fa8">
 <meta property="og:title" content="PestHub | Your Entire Pest Control Operation. One Hub.">
 <meta property="og:description" content="Pricing, procedures, inventory, equipment and field tools for pest and wildlife teams.">
 <meta property="og:type" content="website">
@@ -17,7 +17,7 @@
 /* Layout: sticky nav, split hero with live phone previews, then problem, benefits, tool explorer, field, final CTA */
 :root{
   --ink:#1f2324; --body:#465048; --muted:#5f6b63; --line:#dfe6e1; --wash:#f4f8f5; --white:#fff;
-  --green:#046725; --green-dark:#034d1c; --green-soft:#e4f1e8; --mint:#8fdcaa; --char:#171b1c;
+  --green:#1f5fa8; --green-dark:#174a85; --green-soft:#dcebfa; --mint:#8cc4f5; --char:#171b1c;
   --display:"Poppins","Arial Black",Arial,sans-serif; --text:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
   --shadow:0 2px 6px rgba(23,27,28,.05),0 14px 34px rgba(23,27,28,.08);
   --phone:0 12px 28px rgba(23,27,28,.16),0 34px 70px rgba(23,27,28,.2);
@@ -40,8 +40,8 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--green);outline-offs
 .eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--green)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:54px;padding:0 26px;border-radius:12px;font:600 1rem/1 var(--display);text-decoration:none;border:1px solid transparent;transition:transform .18s ease,box-shadow .18s ease,background .18s ease,border-color .18s ease}
 .btn:active{transform:translateY(1px) scale(.99)}
-.btn.primary{background:var(--green);color:#fff;box-shadow:0 8px 20px rgba(4,103,37,.26)}
-.btn.primary:hover{background:var(--green-dark);transform:translateY(-2px);box-shadow:0 12px 26px rgba(4,103,37,.3)}
+.btn.primary{background:var(--green);color:#fff;box-shadow:0 8px 20px rgba(31,95,168,.26)}
+.btn.primary:hover{background:var(--green-dark);transform:translateY(-2px);box-shadow:0 12px 26px rgba(31,95,168,.3)}
 .btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
 .btn.ghost:hover{border-color:var(--green);color:var(--green);transform:translateY(-2px)}
 .btn svg{width:18px;height:18px;flex:none}
@@ -55,7 +55,7 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--green);outline-offs
 .nav nav a:not(.btn):hover{color:var(--green)}
 .nav .btn{min-height:44px;padding:0 18px;font-size:.9rem}
 /* hero */
-.hero{position:relative;overflow:hidden;background:radial-gradient(900px 520px at 88% 8%,#dff1e4 0,transparent 68%),linear-gradient(180deg,#f7fbf8 0,#fff 72%)}
+.hero{position:relative;overflow:hidden;background:radial-gradient(900px 520px at 88% 8%,#dcebfa 0,transparent 68%),linear-gradient(180deg,#f7fbf8 0,#fff 72%)}
 .hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.04fr);gap:44px;align-items:center;padding-top:60px;padding-bottom:70px}
 .hero .copy{display:grid;gap:20px;justify-items:start;min-width:0}
 .lede{font-size:1.2rem;max-width:33em}
@@ -81,7 +81,7 @@ section{padding-block:84px}
 .head.center{margin-inline:auto;text-align:center;justify-items:center}
 /* problem */
 .problem{background:var(--char);color:#c9d3cc;position:relative;overflow:hidden}
-.problem::after{content:"";position:absolute;right:-180px;top:-200px;width:560px;height:560px;border-radius:50%;background:radial-gradient(closest-side,rgba(63,191,107,.2),transparent);pointer-events:none}
+.problem::after{content:"";position:absolute;right:-180px;top:-200px;width:560px;height:560px;border-radius:50%;background:radial-gradient(closest-side,rgba(59,143,224,.2),transparent);pointer-events:none}
 .problem h2{color:#fff}
 .problem .wrap{position:relative;z-index:1}
 .ps{display:grid;gap:12px}
@@ -99,7 +99,7 @@ section{padding-block:84px}
 /* benefits */
 .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
 .card{display:grid;gap:12px;align-content:start;background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:0 1px 2px rgba(23,27,28,.03);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;min-width:0}
-.card:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:#b7d4c0}
+.card:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:#b3cdeb}
 .ico{width:50px;height:50px;border-radius:14px;display:grid;place-items:center;background:var(--green-soft);color:var(--green)}
 .ico svg{width:26px;height:26px}
 .card .tool{margin-top:auto;padding-top:6px;color:var(--green);font-weight:600;font-size:.92rem}
@@ -122,7 +122,7 @@ section{padding-block:84px}
 .pstage .phone{left:50%;top:0;width:272px;height:556px;margin-left:-136px;z-index:1;position:absolute}
 /* full feature list */
 .all{background:var(--wash)}
-.custom{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px 36px;align-items:center;margin-bottom:44px;padding:30px;border-radius:18px;background:var(--green-soft);border:1px solid #c5dfcd}
+.custom{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px 36px;align-items:center;margin-bottom:44px;padding:30px;border-radius:18px;background:var(--green-soft);border:1px solid #c3d9f2}
 .custom h3{font-size:1.45rem;font-weight:700;margin-bottom:8px}
 .custom ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 20px;color:var(--ink);font-weight:600}
 .custom li{position:relative;padding-left:24px;line-height:1.35}
@@ -155,13 +155,13 @@ section{padding-block:84px}
 .role{display:grid;gap:8px;background:var(--wash);border:1px solid var(--line);border-radius:16px;padding:20px;min-width:0}
 .keep{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:40px}
 .keep>div{border-radius:16px;padding:22px 24px;border:1px solid var(--line);min-width:0}
-.keep .ours{background:var(--green-soft);border-color:#c5dfcd}
+.keep .ours{background:var(--green-soft);border-color:#c3d9f2}
 .keep ul{margin:10px 0 0;padding-left:1.1em}
 /* get your own */
 .own{background:var(--wash)}
 .ways{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
 .way{display:grid;gap:12px;align-content:start;background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;min-width:0}
-.way.ours{background:var(--green-soft);border-color:#c5dfcd}
+.way.ours{background:var(--green-soft);border-color:#c3d9f2}
 .way h3{font-size:1.4rem;font-weight:700}
 .way ul{margin:0;padding-left:1.1em}
 .steps{list-style:none;counter-reset:s;margin:40px auto 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
@@ -181,7 +181,7 @@ section{padding-block:84px}
 .faq details p{padding:0 4px 18px}
 /* final */
 .final{padding-block:0 84px}
-.finalbox{position:relative;overflow:hidden;border-radius:28px;padding:64px 32px;text-align:center;color:#d9efe0;background:radial-gradient(700px 300px at 50% -10%,#0f8a3a 0,transparent 72%),linear-gradient(135deg,#034d1c,#046725);display:grid;gap:18px;justify-items:center}
+.finalbox{position:relative;overflow:hidden;border-radius:28px;padding:64px 32px;text-align:center;color:#d3e5f8;background:radial-gradient(700px 300px at 50% -10%,#2a72c4 0,transparent 72%),linear-gradient(135deg,#174a85,#1f5fa8);display:grid;gap:18px;justify-items:center}
 .finalbox h2{color:#fff}
 .finalbox p{max-width:36em;font-size:1.15rem}
 .finalbox .btn{background:#fff;color:var(--green)}
@@ -264,9 +264,9 @@ footer small{color:var(--muted);font-size:.9rem}
     <p class="note">No sign-up. No credit card. Just explore.</p>
   </div>
   <div class="stage" aria-label="PestHub running on phones, showing the live demo">
-    <div class="phone side b" aria-hidden="true"><div class="screen" data-src="app/traps/index.html"></div><span class="tagc">Trap Checks</span></div>
-    <div class="phone main" aria-hidden="true"><div class="screen" data-src="app/index.html#ops" data-first="1"></div></div>
-    <div class="phone side a" aria-hidden="true"><div class="screen" data-src="app/shop/index.html"></div><span class="tagc">Inventory</span></div>
+    <div class="phone side b" aria-hidden="true"><div class="screen" data-src="https://demo.getpesthub.com/traps/"></div><span class="tagc">Trap Checks</span></div>
+    <div class="phone main" aria-hidden="true"><div class="screen" data-src="https://demo.getpesthub.com/#ops" data-first="1"></div></div>
+    <div class="phone side a" aria-hidden="true"><div class="screen" data-src="https://demo.getpesthub.com/shop/"></div><span class="tagc">Inventory</span></div>
   </div>
 </div></div>
 
