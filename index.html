@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>PestHub | Your whole operation. One Hub.</title>
+<title>PestHub | Your Entire Pest Control Operation. One Hub.</title>
 <meta name="description" content="PestHub is one app for your whole pest and wildlife company: pricing, procedures, inventory, trap checks, door-to-door sales, retention and weekly numbers. Built for your company, connected to FieldRoutes, yours to keep.">
 <meta name="theme-color" content="#1b2b40">
-<meta property="og:title" content="PestHub | Your whole operation. One Hub.">
+<meta property="og:title" content="PestHub | Your Entire Pest Control Operation. One Hub.">
 <meta property="og:description" content="36 tools for techs, the office, sales and managers. Try the live demo, no sign-up.">
 <meta property="og:type" content="website">
 <link rel="icon" href="https://getpesthub.com/img/pesthub-mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://demo.getpesthub.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap">
 <style>
 /* PestHub site. Same type and paper as the Hub itself (Barlow Condensed + Barlow on #f2f4ee), with the Demo's blues.
    One loud thing: a real phone running the live Demo, which follows you through a pest company's day. */
@@ -61,7 +61,10 @@ p{margin:0}
 /* hero */
 .hero{padding:clamp(40px,7vw,88px) 0 clamp(56px,8vw,104px)}
 .hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:clamp(32px,6vw,88px);align-items:center}
-.hero h1{font-size:clamp(52px,7.6vw,104px);font-weight:800}
+.hero .badge{display:inline-flex;align-items:center;gap:10px;margin-bottom:24px;padding:8px 16px;border-radius:999px;background:var(--soft);color:var(--deep);font:600 13px/1.2 "Poppins",var(--body);letter-spacing:.07em;text-transform:uppercase}
+.hero .badge::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--deep);flex:none}
+.hero h1{font-family:"Poppins",var(--body);font-weight:700;font-size:clamp(44px,6.2vw,80px);line-height:1.06;letter-spacing:-.025em}
+.hero h1 span{display:block;color:var(--deep)}
 .hero .lede{margin-top:26px;max-width:34ch;font-size:clamp(19px,1.9vw,22px);color:#2b3029}
 .hero .acts{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
 .hero .note{margin-top:16px;font-size:15px;color:var(--muted)}
@@ -193,7 +196,8 @@ footer a{color:var(--muted)}
 <section class="hero">
   <div class="wrap">
     <div>
-      <h1>Your whole operation. One Hub.</h1>
+      <p class="badge">Built for pest &amp; wildlife professionals</p>
+      <h1>Your Entire Pest Control Operation. <span>One Hub.</span></h1>
       <p class="lede">Pricing, procedures, inventory, trap checks, door-to-door sales, customers at risk and your weekly numbers. One app on every phone, set up with your company’s name, prices and rules.</p>
       <div class="acts">
         <a class="btn primary" href="https://demo.getpesthub.com/">Open the live demo</a>
